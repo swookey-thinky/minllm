@@ -12,7 +12,26 @@ model:
     bias: True
 
 training:
-  learning_rate: .0006
+  # Batch size to use for training
+  batch_size: 128
+  # Total number of steps to train for
+  training_steps: 10000
+  # Wieght decay factor for all of the non-bias and layer norm terms
   weight_decay: 0.1
-  beta1: 0.9
-  beta2: 0.95
+  # True to decay the learning rate using a cosine annealing strategy
+  learning_rate_decay: True
+  # Number of steps for linear learning rate warmup
+  warmup_steps: 250
+  # The maximum step where we cap the learning rate decay
+  learning_rate_decay_steps: 10000
+  # The base learning rate, without warmup or decay
+  learning_rate: .0006
+  # The minimum learning rate, if we are using decay
+  min_learning_rate: .00006
+  # The optimier to use for training.
+  optimizer:
+    target: torch.optim.AdamW
+    params:
+      fused: True
+      betas: [0.9, 0.95]
+

@@ -1,16 +1,21 @@
 from accelerate import Accelerator, DataLoaderConfiguration
 import argparse
-import inspect
+import math
 import os
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torchinfo import summary
 from tqdm import tqdm
-from typing import List
 
-from minllm.utils import cycle, instantiate_from_config, load_yaml, DotConfig
-from minllm.datasets import tinyshakespeare
+from minllm.datasets.utils import load_dataset
+from minllm.utils import (
+    cycle,
+    get_obj_from_str,
+    instantiate_from_config,
+    load_yaml,
+    DotConfig,
+)
 
 OUTPUT_NAME = "output"
 
@@ -22,8 +27,6 @@ def train(
     num_training_steps: int,
     save_and_sample_every_n: int = 1000,
 ):
-    assert dataset == "tinyshakespeare"
-
     global OUTPUT_NAME
     OUTPUT_NAME = f"{OUTPUT_NAME}/{dataset}/{str(Path(config_path).stem)}"
 
@@ -32,9 +35,13 @@ def train(
 
     # Open the model configuration
     config = load_yaml(config_path)
-    dataset = tinyshakespeare.TinyShakespeareTokenized(
-        ".", context_length=config.model.params.context_length
-    )
+    dataset = load_dataset(dataset, context_length=config.model.params.context_length)
+
+    if batch_size <= 0:
+        batch_size = config.training.batch_size
+    if num_training_steps <= 0:
+        num_training_steps = config.training.training_steps
+
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     model = instantiate_from_config(config.model, use_config_struct=True)
     summary(
@@ -64,7 +71,6 @@ def train(
     optimizer = configure_optimizers(
         model=model,
         config=config.training,
-        device_type="cuda",
     )
 
     # Move the model and the optimizer to the accelerator as well.
@@ -82,8 +88,17 @@ def train(
     with tqdm(initial=step, total=num_training_steps) as progress_bar:
         # Perform gradient descent for the given number of training steps.
         while step < num_training_steps:
-            # The dataset has images and classes. Let's use the classes,
-            # and convert them into a fixed embedding space.
+            # Set the learning rate for this iteration.
+            lr = (
+                get_learning_rate(step, config)
+                if config.training.learning_rate_decay
+                else config.training.learning_rate
+            )
+            for param_group in optimizer.param_groups:
+                param_group["lr"] = lr
+
+            # That training data are the tokens at position i, and the targets
+            # are the tokens at position i+1 (the next tokens)
             x, y = next(dataloader)
 
             # Calculate the loss on the batch of training data.
@@ -131,10 +146,8 @@ def train(
             progress_bar.update(1)
 
 
-def configure_optimizers(model: torch.nn.Module, config: DotConfig, device_type: str):
-    learning_rate = config.learning_rate
+def configure_optimizers(model: torch.nn.Module, config: DotConfig):
     weight_decay = config.weight_decay
-    betas = (config.beta1, config.beta2)
 
     # start with all of the candidate parameters
     param_dict = {pn: p for pn, p in model.named_parameters()}
@@ -156,16 +169,32 @@ def configure_optimizers(model: torch.nn.Module, config: DotConfig, device_type:
     print(
         f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters"
     )
-    # Create AdamW optimizer and use the fused version if it is available
-    fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
-    use_fused = fused_available and device_type == "cuda"
-    extra_args = dict(fused=True) if use_fused else dict()
-    optimizer = torch.optim.AdamW(
-        optim_groups, lr=learning_rate, betas=betas, **extra_args
-    )
-    print(f"using fused AdamW: {use_fused}")
 
+    # Create AdamW optimizer and use the fused version if it is available
+    optimizer = get_obj_from_str(config.optimizer.target)(
+        optim_groups,
+        lr=config.learning_rate,
+        **config.optimizer.params.to_dict(),
+    )
     return optimizer
+
+
+def get_learning_rate(step: int, config: DotConfig):
+    # 1) linear warmup for warmup_iters steps
+    if step < config.training.warmup_steps:
+        return config.training.learning_rate * step / config.training.warmup_steps
+    # 2) if it > lr_decay_iters, return min learning rate
+    if step > config.training.learning_rate_decay_steps:
+        return config.training.min_learning_rate
+    # 3) in between, use cosine decay down to min learning rate
+    decay_ratio = (step - config.training.warmup_steps) / (
+        config.training.learning_rate_decay_steps - config.training.warmup_steps
+    )
+    assert 0 <= decay_ratio <= 1
+    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
+    return config.training.min_learning_rate + coeff * (
+        config.training.learning_rate - config.training.min_learning_rate
+    )
 
 
 def save(
@@ -195,8 +224,8 @@ def main(override=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_path", type=str, required=True)
     parser.add_argument("--dataset", type=str, default="tinyshakespeare")
-    parser.add_argument("--batch_size", type=int, default=128)
-    parser.add_argument("--num_training_steps", type=int, default=10000)
+    parser.add_argument("--batch_size", type=int, default=-1)
+    parser.add_argument("--num_training_steps", type=int, default=-1)
 
     args = parser.parse_args()
 

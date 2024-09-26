@@ -81,6 +81,8 @@ def generate(
     the sequence max_new_tokens times, feeding the predictions back into the model each time.
     Most likely you'll want to make sure to be in model.eval() mode of operation for this.
     """
+    model.eval()
+
     for _ in range(max_new_tokens):
         # if the sequence context is growing too long we must crop it at block_size
         idx_cond = idx if idx.size(1) <= context_length else idx[:, -context_length:]

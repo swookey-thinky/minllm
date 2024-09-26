@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 import requests
+from torch.utils.data import Dataset
 from tqdm import tqdm
+
 
 def download_file_from_google_drive(id, destination):
     def get_confirm_token(response):
@@ -59,3 +61,15 @@ def download_file_from_google_drive(id, destination):
             }
             response = session.get(download_url, params=params, stream=True)
     save_response_content(response, destination)
+
+
+def load_dataset(dataset: str, context_length: int) -> Dataset:
+    assert dataset in ["tinyshakespeare"]
+
+    if dataset == "tinyshakespeare":
+        from minllm.datasets import tinyshakespeare
+
+        return tinyshakespeare.TinyShakespeareTokenized(
+            ".", context_length=context_length
+        )
+    assert False, f"Dataset {dataset} not found."
