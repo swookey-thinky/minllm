@@ -44,6 +44,9 @@ If you have issues with PyTorch and different CUDA versions on your instance, ma
 | March 2023 | GPT-4 | [GPT-4 Technical Report](https://arxiv.org/abs/2303.08774) | |
 | July 2023 | LLaMA 2 | [Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288) | |
 | August 2023 | Code LLaMA | [Code Llama: Open Foundation Models for Code](https://arxiv.org/abs/2308.12950) | |
+| October 2023 | Mistral | [Mistral 7B](https://arxiv.org/abs/2310.06825) | |
+| November 2023 | Falcon | [The Falcon Series of Open Language Models](https://arxiv.org/abs/2311.16867) | |
+| January 2024 | Mixtral | [Mixtral of Experts](https://arxiv.org/abs/2401.04088) | |
 | February 2024 | OLMo | [OLMo: Accelerating the Science of Language Models](https://arxiv.org/abs/2402.00838) | |
 | March 2024 | Gemma | [Gemma: Open Models Based on Gemini Research and Technology](https://arxiv.org/abs/2403.08295) | |
 | July 2024 | LLaMA 3 | [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783) | |
