@@ -1,3 +1,8 @@
+"""Base class for BPE tokenizers.
+
+References: https://github.com/karpathy/minbpe
+"""
+
 from abc import abstractmethod
 import os
 from typing import List
