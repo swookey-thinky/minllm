@@ -28,6 +28,7 @@ If you have issues with PyTorch and different CUDA versions on your instance, ma
 
 | Date  | Name  | Paper | Config | Instructions
 | ----: | ---- | ----- | ------ | -----
+| February 2018 | ElMO | [Deep contextualized word representations](https://arxiv.org/abs/1802.05365) | |
 | June 2018 | GPT | [Improving Language Understanding by Generative Pre-Training](https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf) | |
 | October 2018 | BERT | [BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding](https://arxiv.org/abs/1810.04805) | |
 | February 2019 | GPT-2 | [Language Models are Unsupervised Multitask Learners](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf) | [config](https://github.com/swookey-thinky/minllm/blob/main/configs/tinyshakespeare/gpt2.yaml) |
