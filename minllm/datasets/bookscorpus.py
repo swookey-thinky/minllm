@@ -19,7 +19,9 @@ class BooksCorpus(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self._dataset_hf = load_dataset("bookcorpus/bookcorpus", split="train")
+        self._dataset_hf = load_dataset(
+            "bookcorpus/bookcorpus", split="train", trust_remote_code=True
+        )
         self._data_length = len(self._dataset_hf)
 
     def __len__(self):
@@ -56,8 +58,7 @@ class BooksCorpusTokenized(Dataset):
                 token
                 for row in [
                     tokenizer.encode(string_dataset[idx])
-                    for idx in tqdm(range(10000), desc="Tokenizing")
-                    # for idx in tqdm(range(len(string_dataset)), desc="Tokenizing")
+                    for idx in tqdm(range(len(string_dataset)), desc="Tokenizing")
                 ]
                 for token in row
             ]
