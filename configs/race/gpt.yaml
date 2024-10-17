@@ -1,0 +1,48 @@
+multiple_choice_model:
+  target: minllm.models.tasks.multiple_choice_classification.Classifier
+  params:
+    classifier_token: 40480
+    num_choices: 4
+    embedding_dim: 768
+
+base_language_model:
+  target: minllm.models.gpt.GPT
+  params:
+    context_length: 512
+    # Spacy tokenizer size of 40478 + 3 special tokens, padded up to nearest multiple of 64 for efficiency
+    vocab_size: 40512
+    num_layers: 12
+    num_attention_heads: 12
+    embedding_dim: 768
+    dropout: 0.1
+    # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+    bias: True
+
+tokenizer:
+  target: minllm.tokenizer.bpe.spacy.SpacyTextTokenizer
+  params:
+    special_tokens: ['_start_', '_delimiter_', '_classify_']
+
+training:
+  # Batch size to use for training
+  batch_size: 32
+  # Total number of steps to train for
+  training_steps: 10000
+  # Wieght decay factor for all of the non-bias and layer norm terms
+  weight_decay: 0.01
+  # True to decay the learning rate using a cosine annealing strategy
+  learning_rate_decay: True
+  # Number of steps for linear learning rate warmup
+  warmup_steps: 2000
+  # The maximum step where we cap the learning rate decay
+  learning_rate_decay_steps: 9000
+  # The base learning rate, without warmup or decay
+  learning_rate: .0000625
+  # The minimum learning rate, if we are using decay
+  min_learning_rate: .0000
+  # The optimizer to use for training.
+  optimizer:
+    target: torch.optim.Adam
+    params:
+      betas: [0.9, 0.95]
+

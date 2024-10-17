@@ -69,7 +69,7 @@ def download_file_from_google_drive(id, destination):
 def load_dataset(
     dataset: str, context_length: int, tokenizer: Optional[Tokenizer] = None
 ) -> Dataset:
-    assert dataset in ["tinyshakespeare", "bookscorpus"]
+    assert dataset in ["tinyshakespeare", "bookscorpus", "race"]
 
     if dataset == "tinyshakespeare":
         from minllm.datasets import tinyshakespeare
@@ -81,6 +81,12 @@ def load_dataset(
         from minllm.datasets import bookscorpus
 
         return bookscorpus.BooksCorpusTokenized(
+            ".", context_length=context_length, tokenizer=tokenizer
+        )
+    elif dataset == "race":
+        from minllm.datasets import race
+
+        return race.RACETokenized(
             ".", context_length=context_length, tokenizer=tokenizer
         )
 
