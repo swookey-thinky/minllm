@@ -1,19 +1,34 @@
 """
-Full definition of a GPT-2 Language Model, all of it in this single file.
+Full definition of a GPT-1 Language Model, all of it in this single file.
 References:
-1) the official GPT-2 TensorFlow implementation released by OpenAI:
-https://github.com/openai/gpt-2/blob/master/src/model.py
-2) huggingface/transformers PyTorch implementation:
-https://github.com/huggingface/transformers/blob/main/src/transformers/models/gpt2/modeling_gpt2.py
-3.) Karpathy Nano-GPT: https://github.com/karpathy/nanoGPT/blob/master/model.py
+1) the official GPT TensorFlow implementation released by OpenAI:
+https://github.com/openai/finetune-transformer-lm/blob/master/train.py#L162
 """
 
 import math
 import torch
 import torch.nn as nn
 
-from minllm.layers.base import LayerNorm
-from minllm.layers.transformer import TransformerBlock
+from minllm.layers.attention import CausalSelfAttention
+from minllm.layers.base import LayerNorm, MLP
+
+
+class TransformerBlock(nn.Module):
+    """Transformer block from GPT."""
+
+    def __init__(self, config):
+        super().__init__()
+        self.ln_1 = LayerNorm(config.embedding_dim, bias=config.bias)
+        self.attn = CausalSelfAttention(config)
+        self.ln_2 = LayerNorm(config.embedding_dim, bias=config.bias)
+        self.mlp = MLP(config)
+
+    def forward(self, x):
+        a = self.attn(x)
+        n = self.ln_1(x + a)
+        m = self.mlp(n)
+        h = self.ln_2(n + m)
+        return h
 
 
 class GPT(nn.Module):
@@ -32,7 +47,6 @@ class GPT(nn.Module):
                 h=nn.ModuleList(
                     [TransformerBlock(config) for _ in range(config.num_layers)]
                 ),
-                ln_f=LayerNorm(config.embedding_dim, bias=config.bias),
             )
         )
         self.lm_head = nn.Linear(config.embedding_dim, config.vocab_size, bias=False)
@@ -57,7 +71,8 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-    def forward(self, idx):
+    def forward(self, idx: torch.Tensor):
+        # idx is the batched tensor of tokens, of shape (B, L)
         device = idx.device
         _, t = idx.size()
         assert (
@@ -65,17 +80,14 @@ class GPT(nn.Module):
         ), f"Cannot forward sequence of length {t}, block size is only {self._config.context_length}"
         pos = torch.arange(0, t, dtype=torch.long, device=device)  # shape (t)
 
-        # forward the GPT model itself
-        tok_emb = self.transformer.wte(
-            idx
-        )  # token embeddings of shape (b, t, embedding_dim)
-        pos_emb = self.transformer.wpe(
-            pos
-        )  # position embeddings of shape (t, embedding_dim)
+        # Token embeddings of shape (b, t, embedding_dim)
+        tok_emb = self.transformer.wte(idx)
+        # position embeddings of shape (t, embedding_dim)
+        pos_emb = self.transformer.wpe(pos)
         x = self.transformer.drop(tok_emb + pos_emb)
         for block in self.transformer.h:
             x = block(x)
-        x = self.transformer.ln_f(x)
+        # Note these weights are tied to the embedding weights above.
         logits = self.lm_head(x)
         return logits, x
 

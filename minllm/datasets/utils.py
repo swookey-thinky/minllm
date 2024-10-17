@@ -2,6 +2,9 @@ from bs4 import BeautifulSoup
 import requests
 from torch.utils.data import Dataset
 from tqdm import tqdm
+from typing import Optional
+
+from minllm.tokenizer.bpe.base import Tokenizer
 
 
 def download_file_from_google_drive(id, destination):
@@ -63,8 +66,10 @@ def download_file_from_google_drive(id, destination):
     save_response_content(response, destination)
 
 
-def load_dataset(dataset: str, context_length: int) -> Dataset:
-    assert dataset in ["tinyshakespeare"]
+def load_dataset(
+    dataset: str, context_length: int, tokenizer: Optional[Tokenizer] = None
+) -> Dataset:
+    assert dataset in ["tinyshakespeare", "bookscorpus"]
 
     if dataset == "tinyshakespeare":
         from minllm.datasets import tinyshakespeare
@@ -72,4 +77,11 @@ def load_dataset(dataset: str, context_length: int) -> Dataset:
         return tinyshakespeare.TinyShakespeareTokenized(
             ".", context_length=context_length
         )
+    elif dataset == "bookscorpus":
+        from minllm.datasets import bookscorpus
+
+        return bookscorpus.BooksCorpusTokenized(
+            ".", context_length=context_length, tokenizer=tokenizer
+        )
+
     assert False, f"Dataset {dataset} not found."

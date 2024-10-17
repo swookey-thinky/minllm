@@ -141,10 +141,14 @@ class Wikipedia2020EnglishTokenized(Dataset):
 
     def __len__(self):
         # The last item we can get
-        return self._data_length - self._context_length
+        return self._data_length - self._context_length - 1
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         data = np.memmap(self._data_file_name, dtype=self._data_type, mode="r")
-        return torch.from_numpy(data[idx : idx + self._context_length].astype(np.int64))
+        x = torch.from_numpy(data[idx : idx + self._context_length].astype(np.int64))
+        y = torch.from_numpy(
+            data[idx + 1 : idx + 1 + self._context_length].astype(np.int64)
+        )
+        return x, y

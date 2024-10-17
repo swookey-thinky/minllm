@@ -102,7 +102,7 @@ def train(
             x, y = next(dataloader)
 
             # Calculate the loss on the batch of training data.
-            logits = model(x)
+            logits, _ = model(x)
             loss = torch.nn.functional.cross_entropy(
                 logits.view(-1, logits.size(-1)), y.view(-1), ignore_index=-1
             )
