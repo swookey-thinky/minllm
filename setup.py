@@ -74,6 +74,7 @@ setuptools.setup(
         exclude=["config", "docs", "sampling", "tools", "training"]
     ),
     include_package_data=True,
+    package_data={"minllm": ["*.json", "*.bpe", "*.csv"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
