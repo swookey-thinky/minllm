@@ -65,6 +65,7 @@ class RACETokenized(Dataset):
 
         if not os.path.isfile(self._token_file_name):
             # First try to download it if it exists
+            os.makedirs(os.path.dirname(self._token_file_name), exist_ok=True)
             if split == "train" and context_length == 512:
                 download_file_from_google_drive(
                     id="1mFWsr1Y9vsi9WII9qGZd1PNpcYtUxU3R",
@@ -105,8 +106,6 @@ class RACETokenized(Dataset):
         return x, y
 
     def _create_data_files(self, string_dataset, context_length, tokenizer):
-        os.makedirs(os.path.dirname(self._token_file_name), exist_ok=True)
-
         num_answers = len(string_dataset[0]["options"])
         all_examples = []
         all_labels = []
