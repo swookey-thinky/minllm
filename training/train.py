@@ -35,7 +35,14 @@ def train(
 
     # Open the model configuration
     config = load_yaml(config_path)
-    dataset = load_dataset(dataset, context_length=config.model.params.context_length)
+
+    # Load a tokenizer if we have one
+    tokenizer = None
+    if "tokenizer" in config:
+        tokenizer = instantiate_from_config(config.tokenizer.to_dict())
+    dataset = load_dataset(
+        dataset, context_length=config.model.params.context_length, tokenizer=tokenizer
+    )
 
     if batch_size <= 0:
         batch_size = config.training.batch_size
