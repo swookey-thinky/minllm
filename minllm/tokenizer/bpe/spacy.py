@@ -12,9 +12,10 @@ In order to use, must manually download the en-core-web-sm dataset:
 > python -m spacy download en_core_web_sm
 """
 
-import re
+import os
 import ftfy
 import json
+import re
 import spacy
 from typing import List, Optional
 
@@ -134,9 +135,16 @@ class SpacyTextTokenizer(Tokenizer):
         super().__init__()
 
         # Encoder implementation
+        encoder_path = os.path.join(
+            get_current_package_directory(), "data/spacy/encoder_bpe_40000.json"
+        )
+        bpe_path = os.path.join(
+            get_current_package_directory(), "data/spacy/vocab_40000.bpe"
+        )
+
         self._text_encoder = _TextEncoder(
-            encoder_path="minllm/tokenizer/bpe/data/spacy/encoder_bpe_40000.json",
-            bpe_path="minllm/tokenizer/bpe/data/spacy/vocab_40000.bpe",
+            encoder_path=encoder_path,
+            bpe_path=bpe_path,
         )
 
         self._special_tokens = []
@@ -166,3 +174,8 @@ class SpacyTextTokenizer(Tokenizer):
 
     def load(self, model_file):
         raise NotImplementedError
+
+
+def get_current_package_directory():
+    """Gets the directory of the current package."""
+    return os.path.dirname(os.path.abspath(__file__))
