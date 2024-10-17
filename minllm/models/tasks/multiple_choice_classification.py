@@ -51,8 +51,6 @@ class Classifier(torch.nn.Module):
         # the last token from the output
         # lm_logits will be shape (B, L-1, D)
         lm_logits = self._base_language_model.logits(lm_h[:, :-1])
-        print(f"lm_h: {lm_h.shape}")
-        print(f"lm_logits: {lm_logits.shape}")
 
         # Now calculate the classification task, starting with the language
         # model head. First flatten the language model head.
