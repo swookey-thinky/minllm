@@ -1,3 +1,8 @@
+"""StoryCloze dataset, for Q&A evaluation.
+
+This is not a dataset for training on.
+"""
+
 import json
 import os
 import numpy as np
@@ -12,8 +17,8 @@ from minllm.tokenizer.bpe.base import Tokenizer
 from minllm.tokenizer import special_tokens
 
 
-class RACE(Dataset):
-    def __init__(self, split: str = "train"):
+class StoryCloze(Dataset):
+    def __init__(self, split: str = "validation"):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -21,7 +26,11 @@ class RACE(Dataset):
                 on a sample.
         """
         self._dataset_hf = load_dataset(
-            "ehovy/race", name="all", split=split, trust_remote_code=True
+            "LSDSem/story_cloze",
+            name="2016",
+            split=split,
+            trust_remote_code=True,
+            data_dir="minllm/datasets/data",
         )
         self._data_length = len(self._dataset_hf)
 
@@ -35,13 +44,13 @@ class RACE(Dataset):
         return self._dataset_hf[idx]
 
 
-class RACETokenized(Dataset):
+class StoryClozeTokenized(Dataset):
     def __init__(
         self,
         root_dir,
         tokenizer: Tokenizer,
         context_length: int = 1024,
-        split: str = "train",
+        split: str = "validation",
     ):
         """
         Args:
@@ -49,7 +58,7 @@ class RACETokenized(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        archive_base = "RACE"
+        archive_base = "StoryCloze"
         self._token_file_name = os.path.join(
             root_dir, f"{archive_base}/tokens_{split}_{context_length}.bin"
         )
@@ -59,26 +68,30 @@ class RACETokenized(Dataset):
         self._data_type = np.uint16
         self._context_length = context_length
 
-        string_dataset = RACE(split=split)
+        string_dataset = StoryCloze(split=split)
         self._data_length = len(string_dataset)
 
         if not os.path.isfile(self._token_file_name):
             os.makedirs(os.path.dirname(self._token_file_name), exist_ok=True)
 
-            num_answers = len(string_dataset[0]["options"])
+            num_answers = 2
             all_examples = []
             all_labels = []
 
             for example_idx in tqdm(range(len(string_dataset)), desc="Tokenizing"):
                 example = string_dataset[example_idx]
 
-                context = example["article"]
-                label = self._convert_to_label_idx(example["answer"])
-                question = example["question"]
-                answers = example["options"]
+                context = (
+                    example["input_sentence_1"]
+                    + example["input_sentence_2"]
+                    + example["input_sentence_3"]
+                    + example["input_sentence_4"]
+                )
+                label = example["answer_right_ending"] - 1
+                answers = [example["sentence_quiz1"], example["sentence_quiz2"]]
                 assert len(answers) == num_answers
 
-                context_tokens = tokenizer.encode(context + question)
+                context_tokens = tokenizer.encode(context)
                 answers_tokens = [tokenizer.encode(a) for a in answers]
 
                 # Pack the tokens into a tensor of length (num_answers, context_length)
@@ -185,7 +198,3 @@ class RACETokenized(Dataset):
         x = torch.from_numpy(data[idx].astype(np.int64))
         y = torch.tensor(labels[idx], dtype=torch.int64)
         return x, y
-
-    def _convert_to_label_idx(self, label: str):
-        assert label.lower() in ["a", "b", "c", "d"]
-        return ord(label.lower()) - ord("a")
