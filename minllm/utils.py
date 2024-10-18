@@ -1,5 +1,7 @@
 from functools import partial
 import importlib
+import os
+import shutil
 from torch.utils.data import DataLoader
 from typing import Any, Dict, Type
 import yaml
@@ -94,3 +96,28 @@ def cycle(dataloader: DataLoader):
     while True:
         for data in dataloader:
             yield data
+
+
+def copy_to_drive(input_path: str, drive_folder_name: str):
+    """Copies a file to google drive in colab.
+
+    Args:
+        input_path: The full path to the file to copy
+        drive_folder_name: The folder path in Drive to copy to.
+            This path will exist under 'My Drive', and should be
+            formatted like: 'Training/Checkpoints'.
+    """
+    try:
+        from google.colab import drive
+    except ImportError:
+        print(f"Must be runing in Google Colab, copying disabled.")
+        return
+
+    drive_mount_path = "/content/drive"
+    drive.mount(drive_mount_path, force_remount=True)
+
+    output_file_path = os.path.join(drive_mount_path, "MyDrive", drive_folder_name)
+
+    # Make sure the output directory exists
+    os.makedirs(output_file_path, exist_ok=True)
+    shutil.copy(input_path, output_file_path)

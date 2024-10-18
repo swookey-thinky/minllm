@@ -25,6 +25,7 @@ def train(
     dataset: str,
     batch_size: int,
     num_training_steps: int,
+    mixed_precision: str,
     save_and_sample_every_n: int = 1000,
 ):
     global OUTPUT_NAME
@@ -63,7 +64,7 @@ def train(
     # The accelerate library will handle of the GPU device management for us.
     accelerator = Accelerator(
         dataloader_config=DataLoaderConfiguration(split_batches=False),
-        mixed_precision="no",
+        mixed_precision=mixed_precision,
     )
 
     # Prepare the dataset with the accelerator. This makes sure all of the
@@ -109,10 +110,11 @@ def train(
             x, y = next(dataloader)
 
             # Calculate the loss on the batch of training data.
-            logits, _ = model(x)
-            loss = torch.nn.functional.cross_entropy(
-                logits.view(-1, logits.size(-1)), y.view(-1), ignore_index=-1
-            )
+            with accelerator.autocast():
+                logits, _ = model(x)
+                loss = torch.nn.functional.cross_entropy(
+                    logits.view(-1, logits.size(-1)), y.view(-1), ignore_index=-1
+                )
 
             # Calculate the gradients at each step in the network.
             accelerator.backward(loss)
@@ -233,6 +235,7 @@ def main(override=None):
     parser.add_argument("--dataset", type=str, default="tinyshakespeare")
     parser.add_argument("--batch_size", type=int, default=-1)
     parser.add_argument("--num_training_steps", type=int, default=-1)
+    parser.add_argument("--mixed_precision", type=str, default="no")
 
     args = parser.parse_args()
 
@@ -241,6 +244,7 @@ def main(override=None):
         dataset=args.dataset,
         batch_size=args.batch_size,
         num_training_steps=args.num_training_steps,
+        mixed_precision=args.mixed_precision,
     )
 
 

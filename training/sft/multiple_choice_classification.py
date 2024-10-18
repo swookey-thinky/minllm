@@ -27,6 +27,7 @@ def train(
     batch_size: int,
     num_training_steps: int,
     language_model_coeff: float,
+    mixed_precision: str,
     save_and_sample_every_n: int = 1000,
 ):
     global OUTPUT_NAME
@@ -82,7 +83,7 @@ def train(
     # The accelerate library will handle of the GPU device management for us.
     accelerator = Accelerator(
         dataloader_config=DataLoaderConfiguration(split_batches=False),
-        mixed_precision="no",
+        mixed_precision=mixed_precision,
     )
 
     # Prepare the dataset with the accelerator. This makes sure all of the
@@ -128,16 +129,19 @@ def train(
             x, y = next(dataloader)
 
             # Calculate the loss on the batch of training data.
-            lm_logits, clf_logits = model(x)
-            lm_loss = torch.nn.functional.cross_entropy(
-                lm_logits.view(-1, lm_logits.size(-1)),
-                x[:, :, 1:].reshape(-1),
-                ignore_index=-1,
-            )
-            clf_loss = torch.nn.functional.cross_entropy(
-                clf_logits.view(-1, clf_logits.size(-1)), y.view(-1), ignore_index=-1
-            )
-            loss = clf_loss + language_model_coeff * lm_loss
+            with accelerator.autocast():
+                lm_logits, clf_logits = model(x)
+                lm_loss = torch.nn.functional.cross_entropy(
+                    lm_logits.view(-1, lm_logits.size(-1)),
+                    x[:, :, 1:].reshape(-1),
+                    ignore_index=-1,
+                )
+                clf_loss = torch.nn.functional.cross_entropy(
+                    clf_logits.view(-1, clf_logits.size(-1)),
+                    y.view(-1),
+                    ignore_index=-1,
+                )
+                loss = clf_loss + language_model_coeff * lm_loss
 
             # Calculate the gradients at each step in the network.
             accelerator.backward(loss)
@@ -259,6 +263,7 @@ def main(override=None):
     parser.add_argument("--batch_size", type=int, default=-1)
     parser.add_argument("--num_training_steps", type=int, default=-1)
     parser.add_argument("--language_model_coeff", type=float, default=0.5)
+    parser.add_argument("--mixed_precision", type=str, default="no")
 
     args = parser.parse_args()
 
@@ -268,6 +273,7 @@ def main(override=None):
         batch_size=args.batch_size,
         num_training_steps=args.num_training_steps,
         language_model_coeff=args.language_model_coeff,
+        mixed_precision=args.mixed_precision,
     )
 
 
