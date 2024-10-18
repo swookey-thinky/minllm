@@ -54,6 +54,7 @@ If you have issues with PyTorch and different CUDA versions on your instance, ma
 | March 2024 | Gemma | [Gemma: Open Models Based on Gemini Research and Technology](https://arxiv.org/abs/2403.08295) | |
 | July 2024 | LLaMA 3 | [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783) | |
 | July 2024 | Gemma 2 | [Gemma 2: Improving Open Language Models at a Practical Size](https://arxiv.org/abs/2408.00118) | | 
+| July 2024 | Minitron | [Compact Language Models via Pruning and Knowledge Distillation](https://arxiv.org/abs/2407.14679) | |
 | September 2024 | Molmo | [Molmo and PixMo: Open Weights and Open Data for State-of-the-Art Multimodal Models](https://molmo.allenai.org/paper.pdf) | |
 | September 2024 | NVLM | [NVLM: Open Frontier-Class Multimodal LLMs](https://arxiv.org/abs/2409.11402) | |
 | September 2024 | SCoRe | [Training Language Models to Self-Correct via Reinforcement Learning](https://arxiv.org/abs/2409.12917) | |
