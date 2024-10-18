@@ -42,6 +42,7 @@ If you have issues with PyTorch and different CUDA versions on your instance, ma
 | March 2022 | Instruct-GPT | [Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155) | |
 | April 2022 | PaLM | [PaLM: Scaling Language Modeling with Pathways](https://arxiv.org/abs/2204.02311) | |
 | April 2022 | Flamingo | [Flamingo: a Visual Language Model for Few-Shot Learning](https://arxiv.org/abs/2204.14198) | |
+| April 2022 | Claude | [Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback](https://arxiv.org/abs/2204.05862) | |
 | February 2023 | LLaMA | [LLaMA: Open and Efficient Foundation Language Models](https://arxiv.org/abs/2302.13971) | |
 | March 2023 | GPT-4 | [GPT-4 Technical Report](https://arxiv.org/abs/2303.08774) | |
 | July 2023 | LLaMA 2 | [Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288) | |
