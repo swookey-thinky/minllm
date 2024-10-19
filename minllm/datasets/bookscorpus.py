@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from datasets import load_dataset
 from minllm.tokenizer.bpe.base import Tokenizer
+from minllm.datasets.utils import download_file_from_google_drive
 
 
 class BooksCorpus(Dataset):
@@ -35,7 +36,13 @@ class BooksCorpus(Dataset):
 
 
 class BooksCorpusTokenized(Dataset):
-    def __init__(self, root_dir, tokenizer: Tokenizer, context_length: int = 1024):
+    def __init__(
+        self,
+        root_dir,
+        tokenizer: Tokenizer,
+        context_length: int = 1024,
+        download: bool = True,
+    ):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -71,45 +78,17 @@ class BooksCorpusTokenized(Dataset):
         if not os.path.isfile(first_shard_name):
             os.makedirs(os.path.dirname(first_shard_name), exist_ok=True)
 
-            all_tokens = []
-            output_shard_idx = 0
-            for shard_idx in tqdm(
-                range(self._input_num_shards), desc="Processing Shards"
-            ):
-                shard_tokens = [
-                    token
-                    for row in [
-                        tokenizer.encode(string_dataset[idx])
-                        for idx in tqdm(
-                            range(
-                                shard_idx * self._input_shard_size,
-                                min(
-                                    shard_idx * self._input_shard_size
-                                    + self._input_shard_size,
-                                    len(string_dataset),
-                                ),
-                            ),
-                            desc="Tokenizing",
-                            leave=False,
-                        )
-                    ]
-                    for token in row
-                ]
-                all_tokens.extend(shard_tokens)
-
-                # After each input shard, write the output shards, as much as we can
-                while len(all_tokens) > self._output_shard_size:
-                    all_tokens = self._write_output_shard(
-                        all_tokens, output_shard_idx=output_shard_idx
-                    )
-                    output_shard_idx += 1
-
-            # Write any remaining data
-            while len(all_tokens) > 0:
-                all_tokens = self._write_output_shard(
-                    all_tokens, output_shard_idx=output_shard_idx
+            if download and context_length == 512:
+                download_file_from_google_drive(
+                    id="1kOgcs-gmUmqFPbCGnvVMkJXgLmMFivLD",
+                    destination=first_shard_name,
                 )
-                output_shard_idx += 1
+            else:
+                self._create_data_files(
+                    string_dataset=string_dataset,
+                    context_length=context_length,
+                    tokenizer=tokenizer,
+                )
 
         # Calculate the total size based on the size of all of the shards
         self._num_shards = 0
@@ -129,44 +108,6 @@ class BooksCorpusTokenized(Dataset):
                 self._num_shards += 1
             else:
                 break
-
-    def _write_output_shard(self, all_tokens, output_shard_idx: int):
-        output_tokens = all_tokens[: self._output_shard_size]
-        all_tokens = all_tokens[self._output_shard_size :]
-        output_shard_size = len(output_tokens)
-
-        shard_file_name = os.path.join(
-            self._token_file_name_root,
-            self._token_file_template.format(
-                shard_idx=output_shard_idx, context_length=self._context_length
-            ),
-        )
-        output_array = np.memmap(
-            shard_file_name,
-            dtype=self._data_type,
-            mode="w+",
-            shape=(output_shard_size,),
-        )
-
-        chunk_size = 1024
-        for i in tqdm(
-            range(
-                (len(output_tokens) // chunk_size) + 1
-                if len(output_tokens) % chunk_size != 0
-                else 0
-            ),
-            desc=f"Writing Output Shard {output_shard_idx}",
-            leave=False,
-        ):
-            chunk = np.array(
-                output_tokens[i * chunk_size : i * chunk_size + chunk_size],
-                dtype=self._data_type,
-            )
-
-            output_array[i * chunk_size : i * chunk_size + len(chunk)] = chunk
-        output_array.flush()
-
-        return all_tokens
 
     def __len__(self):
         # The last item we can get
@@ -241,3 +182,80 @@ class BooksCorpusTokenized(Dataset):
         assert x.shape[0] == self._context_length, f"{x.shape} {idx}"
         assert y.shape[0] == self._context_length, f"{y.shape} {idx}"
         return x, y
+
+    def _write_output_shard(self, all_tokens, output_shard_idx: int):
+        output_tokens = all_tokens[: self._output_shard_size]
+        all_tokens = all_tokens[self._output_shard_size :]
+        output_shard_size = len(output_tokens)
+
+        shard_file_name = os.path.join(
+            self._token_file_name_root,
+            self._token_file_template.format(
+                shard_idx=output_shard_idx, context_length=self._context_length
+            ),
+        )
+        output_array = np.memmap(
+            shard_file_name,
+            dtype=self._data_type,
+            mode="w+",
+            shape=(output_shard_size,),
+        )
+
+        chunk_size = 1024
+        for i in tqdm(
+            range(
+                (len(output_tokens) // chunk_size) + 1
+                if len(output_tokens) % chunk_size != 0
+                else 0
+            ),
+            desc=f"Writing Output Shard {output_shard_idx}",
+            leave=False,
+        ):
+            chunk = np.array(
+                output_tokens[i * chunk_size : i * chunk_size + chunk_size],
+                dtype=self._data_type,
+            )
+
+            output_array[i * chunk_size : i * chunk_size + len(chunk)] = chunk
+        output_array.flush()
+
+        return all_tokens
+
+    def _create_data_files(self, string_dataset, context_length, tokenizer):
+        all_tokens = []
+        output_shard_idx = 0
+        for shard_idx in tqdm(range(self._input_num_shards), desc="Processing Shards"):
+            shard_tokens = [
+                token
+                for row in [
+                    tokenizer.encode(string_dataset[idx])
+                    for idx in tqdm(
+                        range(
+                            shard_idx * self._input_shard_size,
+                            min(
+                                shard_idx * self._input_shard_size
+                                + self._input_shard_size,
+                                len(string_dataset),
+                            ),
+                        ),
+                        desc="Tokenizing",
+                        leave=False,
+                    )
+                ]
+                for token in row
+            ]
+            all_tokens.extend(shard_tokens)
+
+            # After each input shard, write the output shards, as much as we can
+            while len(all_tokens) > self._output_shard_size:
+                all_tokens = self._write_output_shard(
+                    all_tokens, output_shard_idx=output_shard_idx
+                )
+                output_shard_idx += 1
+
+        # Write any remaining data
+        while len(all_tokens) > 0:
+            all_tokens = self._write_output_shard(
+                all_tokens, output_shard_idx=output_shard_idx
+            )
+            output_shard_idx += 1
