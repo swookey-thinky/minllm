@@ -65,7 +65,7 @@ def train(
 
     # Check to see if we are using gradient accumulation
     gradient_accumulation_steps = 1
-    if "training" in config:
+    if "training" in config and "gradient_accumulation_steps" in config.training:
         gradient_accumulation_steps = config.training.gradient_accumulation_steps
 
     # The accelerate library will handle of the GPU device management for us.

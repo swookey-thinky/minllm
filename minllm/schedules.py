@@ -16,18 +16,28 @@ def get_cosine_schedule_with_warmup(
     )
 
     def get_learning_rate(step: int):
+        # Factor in the number of gradient accumulation steps
+        # when doing any calculations
+        gradient_accumulation_steps = (
+            config.training.gradient_accumulation_steps
+            if "gradient_accumulation_steps" in config.training
+            else 1
+        )
+        warmup_steps = config.training.warmup_steps // gradient_accumulation_steps
+        learning_rate_decay_steps = (
+            config.training.learning_rate_decay_steps // gradient_accumulation_steps
+        )
+
         # 1) linear warmup for warmup_iters steps
-        if step < config.training.warmup_steps:
-            return step / config.training.warmup_steps
+        if step < warmup_steps:
+            return step / warmup_steps
 
         # 2) if it > lr_decay_iters, return min learning rate
-        if step > config.training.learning_rate_decay_steps:
+        if step > learning_rate_decay_steps:
             return 1.0
 
         # 3) in between, use cosine decay down to min learning rate
-        decay_ratio = (step - config.training.warmup_steps) / (
-            config.training.learning_rate_decay_steps - config.training.warmup_steps
-        )
+        decay_ratio = (step - warmup_steps) / (learning_rate_decay_steps - warmup_steps)
         assert 0 <= decay_ratio <= 1
         coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
         expected_learning_rate = config.training.min_learning_rate + coeff * (
@@ -36,7 +46,7 @@ def get_cosine_schedule_with_warmup(
         lambda_lr = expected_learning_rate / config.training.learning_rate
         return lambda_lr
 
-    return torch.optim.lr_scheduler.LambdaLR(optimizer, get_learning_rate, verbose=True)
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, get_learning_rate)
 
 
 def get_constant_schedule_with_warmup(
