@@ -1,4 +1,5 @@
 from accelerate import Accelerator, DataLoaderConfiguration
+from accelerate.utils import GradientAccumulationPlugin
 import argparse
 import math
 import os
@@ -9,6 +10,7 @@ from torchinfo import summary
 from tqdm import tqdm
 
 from minllm.datasets.utils import load_dataset
+from minllm.schedules import get_cosine_schedule_with_warmup
 from minllm.utils import (
     cycle,
     get_obj_from_str,
@@ -61,10 +63,20 @@ def train(
         dtypes=[torch.int64],
     )
 
+    # Check to see if we are using gradient accumulation
+    gradient_accumulation_steps = 1
+    if "training" in config:
+        gradient_accumulation_steps = config.training.gradient_accumulation_steps
+
     # The accelerate library will handle of the GPU device management for us.
     accelerator = Accelerator(
         dataloader_config=DataLoaderConfiguration(split_batches=False),
         mixed_precision=mixed_precision,
+        gradient_accumulation_plugin=GradientAccumulationPlugin(
+            num_steps=gradient_accumulation_steps,
+            adjust_scheduler=True,
+            sync_with_dataloader=False,
+        ),
     )
 
     # Prepare the dataset with the accelerator. This makes sure all of the
@@ -81,8 +93,11 @@ def train(
         config=config.training,
     )
 
+    # Create the learning rate schedule
+    lr_scheduler = get_cosine_schedule_with_warmup(optimizer, config=config)
+
     # Move the model and the optimizer to the accelerator as well.
-    model = accelerator.prepare(model)
+    model, lr_scheduler = accelerator.prepare(model, lr_scheduler)
 
     # Step counter to keep track of training
     step = 0
@@ -96,25 +111,17 @@ def train(
     with tqdm(initial=step, total=num_training_steps) as progress_bar:
         # Perform gradient descent for the given number of training steps.
         while step < num_training_steps:
-            # Set the learning rate for this iteration.
-            lr = (
-                get_learning_rate(step, config)
-                if config.training.learning_rate_decay
-                else config.training.learning_rate
-            )
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = lr
+            with accelerator.accumulate(model):
+                # That training data are the tokens at position i, and the targets
+                # are the tokens at position i+1 (the next tokens)
+                x, y = next(dataloader)
 
-            # That training data are the tokens at position i, and the targets
-            # are the tokens at position i+1 (the next tokens)
-            x, y = next(dataloader)
-
-            # Calculate the loss on the batch of training data.
-            with accelerator.autocast():
-                logits, _ = model(x)
-                loss = torch.nn.functional.cross_entropy(
-                    logits.view(-1, logits.size(-1)), y.view(-1), ignore_index=-1
-                )
+                # Calculate the loss on the batch of training data.
+                with accelerator.autocast():
+                    logits, _ = model(x)
+                    loss = torch.nn.functional.cross_entropy(
+                        logits.view(-1, logits.size(-1)), y.view(-1), ignore_index=-1
+                    )
 
             # Calculate the gradients at each step in the network.
             accelerator.backward(loss)
@@ -131,6 +138,9 @@ def train(
 
             # Perform the gradient descent step using the optimizer.
             optimizer.step()
+
+            # Step the learning rate scheduler as well
+            lr_scheduler.step()
 
             # Reset the gradients for the next step.
             optimizer.zero_grad()
