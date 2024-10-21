@@ -47,26 +47,12 @@ def train(
     # Create the evaluator for measuring the training performance.
     evaluator = Evaluator(config=config.training.evaluation)
 
-    if dataset == config.training.evaluation.dataset:
-        # The training and evaluation datasets are the same
-        dataset = load_dataset(
-            dataset,
-            context_length=config.model.params.context_length,
-            tokenizer=tokenizer,
-        )
-        evaluation_dataset = dataset
-    else:
-        # The training and evaluation datasets are different
-        dataset = load_dataset(
-            dataset,
-            context_length=config.model.params.context_length,
-            tokenizer=tokenizer,
-        )
-        evaluation_dataset = load_dataset(
-            config.evaluation.dataset,
-            context_length=config.model.params.context_length,
-            tokenizer=tokenizer,
-        )
+    # Load the training dataset
+    dataset = load_dataset(
+        dataset,
+        context_length=config.model.params.context_length,
+        tokenizer=tokenizer,
+    )
 
     if batch_size <= 0:
         batch_size = config.training.batch_size
@@ -190,7 +176,7 @@ def train(
             if step % save_and_sample_every_n == 0:
                 current_evaluation_results = evaluator.evaluate(
                     model=model,
-                    dataset=evaluation_dataset,
+                    dataloader=dataloader,
                     accelerator=accelerator,
                 )
                 save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
@@ -206,7 +192,7 @@ def train(
     # Final results.
     current_evaluation_results = evaluator.evaluate(
         model=model,
-        dataset=evaluation_dataset,
+        dataloader=dataloader,
         accelerator=accelerator,
     )
     save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
