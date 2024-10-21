@@ -30,13 +30,13 @@ tokenizer:
 # so we will train for a total of 1.6m steps.
 training:
   # Batch size to use for training
-  batch_size: 12
+  batch_size: 64
   # The number of steps to perform gradient accumulation
   gradient_accumulation_steps: 5
   # Total number of steps to train for, equivalent to 10 epochs
   # given the above batch size.
   training_steps: 1600000
-  # Wieght decay factor for all of the non-bias and layer norm terms
+  # Weight decay factor for all of the non-bias and layer norm terms
   weight_decay: 0.01
   # True to decay the learning rate using a cosine annealing strategy
   learning_rate_decay: True
@@ -49,7 +49,7 @@ training:
   # The minimum learning rate, if we are using decay
   min_learning_rate: .0000
   # Save and sample the model every N steps
-  save_and_sample_every_n: 100000
+  save_and_sample_every_n: 50000
   # The dataset we are training on
   dataset: "bookscorpus"
   # Mixed precision training settings
@@ -66,7 +66,7 @@ training:
     # Evalate over a total of N samples
     total_samples: 1024
     # Evaluate 12 samples at a time
-    samples_per_batch: 12
+    samples_per_batch: 64
     # Context length of the model
     context_length: 512
 

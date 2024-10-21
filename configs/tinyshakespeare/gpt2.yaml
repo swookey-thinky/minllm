@@ -16,7 +16,7 @@ training:
   batch_size: 128
   # Total number of steps to train for
   training_steps: 10000
-  # Wieght decay factor for all of the non-bias and layer norm terms
+  # Weight decay factor for all of the non-bias and layer norm terms
   weight_decay: 0.1
   # True to decay the learning rate using a cosine annealing strategy
   learning_rate_decay: True
@@ -53,7 +53,7 @@ training:
     # Evalate over a total of N samples
     total_samples: 1024
     # Evaluate 12 samples at a time
-    samples_per_batch: 16
+    samples_per_batch: 128
     # Context length of the model
     context_length: 64
 
