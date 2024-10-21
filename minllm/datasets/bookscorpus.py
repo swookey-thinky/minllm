@@ -56,15 +56,6 @@ class BooksCorpusTokenized(Dataset):
         self._token_file_template = "tokens_{shard_idx}_{context_length}.bin"
         self._data_type = np.uint16
 
-        # The raw corpus should have 74004228 examples
-        string_dataset = BooksCorpus()
-
-        # 1m entries per input shard
-        self._input_shard_size = 1048576
-        self._input_num_shards = (len(string_dataset) // self._input_shard_size) + (
-            1 if len(string_dataset) % self._input_shard_size != 0 else 0
-        )
-
         # Output shard size is 1 gigabyte
         self._output_shard_size = 1024**3
 
@@ -84,6 +75,14 @@ class BooksCorpusTokenized(Dataset):
                     destination=first_shard_name,
                 )
             else:
+                # The raw corpus should have 74004228 examples
+                string_dataset = BooksCorpus()
+
+                # 1m entries per input shard
+                self._input_shard_size = 1048576
+                self._input_num_shards = (
+                    len(string_dataset) // self._input_shard_size
+                ) + (1 if len(string_dataset) % self._input_shard_size != 0 else 0)
                 self._create_data_files(
                     string_dataset=string_dataset,
                     context_length=context_length,
