@@ -61,13 +61,15 @@ def train(
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     model = instantiate_from_config(config.model, use_config_struct=True)
-    summary(
-        model=model,
-        input_size=(
-            batch_size,
-            config.model.params.context_length,
-        ),
-        dtypes=[torch.int64],
+    print(
+        summary(
+            model=model,
+            input_size=(
+                batch_size,
+                config.model.params.context_length,
+            ),
+            dtypes=[torch.int64],
+        )
     )
 
     # Check to see if we are using gradient accumulation
