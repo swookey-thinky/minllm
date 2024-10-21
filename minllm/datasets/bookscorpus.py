@@ -130,12 +130,8 @@ class BooksCorpusTokenized(Dataset):
         if idx > (self._data_length - self._context_length - 1):
             raise IndexError()
 
-        x = torch.from_numpy(
-            self._shard_data[idx : idx + self._context_length].astype(np.int64)
-        )
-        y = torch.from_numpy(
-            self._shard_data[idx + 1 : idx + 1 + self._context_length].astype(np.int64)
-        )
+        x = torch.from_numpy(self._shard_data[idx : idx + self._context_length])
+        y = torch.from_numpy(self._shard_data[idx + 1 : idx + 1 + self._context_length])
         assert x.shape[0] == self._context_length, f"{x.shape} {idx}"
         assert y.shape[0] == self._context_length, f"{y.shape} {idx}"
         return x, y
