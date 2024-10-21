@@ -3,7 +3,7 @@
 from accelerate import Accelerator
 import torch
 from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from minllm.datasets.utils import load_dataset
 from minllm.utils import DotConfig, instantiate_from_config, cycle
 

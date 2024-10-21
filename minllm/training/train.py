@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torchinfo import summary
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from typing import Optional
 
 from minllm.datasets.utils import load_dataset
