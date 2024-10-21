@@ -33,6 +33,7 @@ class Evaluator:
         # Cache the dataloader so we do not need to create it each cycle.
         self._dataloader_cache = None
 
+    @torch.inference_mode()
     def evaluate(
         self, model: torch.nn.Module, dataset: Dataset, accelerator: Accelerator
     ):
@@ -45,7 +46,7 @@ class Evaluator:
                 dataset,
                 batch_size=self._samples_per_batch,
                 shuffle=True,
-                num_workers=4,
+                num_workers=1,
             )
             dataloader = accelerator.prepare(dataloader)
             dataloader = cycle(dataloader)

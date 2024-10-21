@@ -12,7 +12,7 @@ def get_cosine_schedule_with_warmup(
     num_warmup_steps = config.training.warmup_steps
 
     print(
-        f"Creating constant learning rate schedule with {num_warmup_steps} warmup steps."
+        f"Creating cosine learning rate schedule with {num_warmup_steps} warmup steps."
     )
 
     def get_learning_rate(step: int):
