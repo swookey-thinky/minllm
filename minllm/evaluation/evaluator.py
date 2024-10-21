@@ -2,7 +2,7 @@
 
 from accelerate import Accelerator
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from minllm.datasets.utils import load_dataset
 from minllm.utils import DotConfig, instantiate_from_config, cycle
@@ -30,28 +30,10 @@ class Evaluator:
         # The number of samples to evaluate in each batch
         self._samples_per_batch = config.samples_per_batch
 
-        # Cache the dataloader so we do not need to create it each cycle.
-        self._dataloader_cache = None
-
     @torch.inference_mode()
     def evaluate(
-        self, model: torch.nn.Module, dataset: Dataset, accelerator: Accelerator
+        self, model: torch.nn.Module, dataloader: DataLoader, accelerator: Accelerator
     ):
-        # Stochastic evaluation, so evaluation on a random subset of the model
-        # First create the dataloader
-        if self._dataloader_cache is not None:
-            dataloader = self._dataloader_cache
-        else:
-            dataloader = DataLoader(
-                dataset,
-                batch_size=self._samples_per_batch,
-                shuffle=True,
-                num_workers=1,
-            )
-            dataloader = accelerator.prepare(dataloader)
-            dataloader = cycle(dataloader)
-            self._dataloader_cache = dataloader
-
         results = {}
         with torch.inference_mode():
             step = 0
