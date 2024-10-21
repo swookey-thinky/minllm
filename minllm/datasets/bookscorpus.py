@@ -107,6 +107,16 @@ class BooksCorpusTokenized(Dataset):
                 self._num_shards += 1
             else:
                 break
+        assert self._num_shards == 1
+
+        # Only mmap the data once
+        shard_file_name = os.path.join(
+            self._token_file_name_root,
+            self._token_file_template.format(
+                shard_idx=0, context_length=self._context_length
+            ),
+        )
+        self._shard_data = np.memmap(shard_file_name, dtype=self._data_type, mode="r")
 
     def __len__(self):
         # The last item we can get
@@ -114,6 +124,23 @@ class BooksCorpusTokenized(Dataset):
         return last_index + 1
 
     def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        if idx > (self._data_length - self._context_length - 1):
+            raise IndexError()
+
+        x = torch.from_numpy(
+            self._shard_data[idx : idx + self._context_length].astype(np.int64)
+        )
+        y = torch.from_numpy(
+            self._shard_data[idx + 1 : idx + 1 + self._context_length].astype(np.int64)
+        )
+        assert x.shape[0] == self._context_length, f"{x.shape} {idx}"
+        assert y.shape[0] == self._context_length, f"{y.shape} {idx}"
+        return x, y
+
+    def _sharded_getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
