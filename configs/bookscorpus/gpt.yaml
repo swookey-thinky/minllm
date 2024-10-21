@@ -50,6 +50,10 @@ training:
   min_learning_rate: .0000
   # Save and sample the model every N steps
   save_and_sample_every_n: 100000
+  # The dataset we are training on
+  dataset: "bookscorpus"
+  # Mixed precision training settings
+  mixed_precision: "bf16"
 
   # Metrics to evaluate on
   evaluation:
@@ -58,11 +62,13 @@ training:
     # The dataset to evaluate on. In this case, BooksCorpus
     # does not have a hold out set, so we will evaluate on random
     # samples from the set itself.
-    dataset: "self"
+    dataset: "bookscorpus"
     # Evalate over a total of N samples
-    total_samples:
+    total_samples: 1024
     # Evaluate 12 samples at a time
     samples_per_batch: 12
+    # Context length of the model
+    context_length: 512
 
   # The optimizer to use for training.
   optimizer:
