@@ -168,14 +168,17 @@ def train(
                     # Reset the gradients for the next step.
                     optimizer.zero_grad()
 
-            # Show the current loss in the progress bar.
-            progress_bar.set_description(
-                f"loss: {loss.item():.4f} avg_loss: {average_loss:.4f}"
-                + "".join(
-                    [f" {k}: {v:.4f}" for k, v in current_evaluation_results.items()]
-                )
-            )
-            average_loss_cumulative += loss.item()
+                    # Show the current loss in the progress bar.
+                    progress_bar.set_description(
+                        f"loss: {loss.item():.4f} avg_loss: {average_loss:.4f}"
+                        + "".join(
+                            [
+                                f" {k}: {v:.4f}"
+                                for k, v in current_evaluation_results.items()
+                            ]
+                        )
+                    )
+                    average_loss_cumulative += loss.item()
 
             # To help visualize training, periodically sample from the
             # diffusion model to see how well its doing.
