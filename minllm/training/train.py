@@ -130,39 +130,43 @@ def train(
     with tqdm(initial=step, total=num_training_steps) as progress_bar:
         # Perform gradient descent for the given number of training steps.
         while step < num_training_steps:
-            with accelerator.accumulate(model):
-                # That training data are the tokens at position i, and the targets
-                # are the tokens at position i+1 (the next tokens)
-                x, y = next(dataloader)
+            # All of the gradient accumulation steps count as one training step.
+            for _ in range(gradient_accumulation_steps):
+                with accelerator.accumulate(model):
+                    # The training data are the tokens at position i, and the targets
+                    # are the tokens at position i+1 (the next tokens)
+                    x, y = next(dataloader)
 
-                # Calculate the loss on the batch of training data.
-                with accelerator.autocast():
-                    logits, _ = model(x)
-                    loss = torch.nn.functional.cross_entropy(
-                        logits.view(-1, logits.size(-1)), y.view(-1), ignore_index=-1
+                    # Calculate the loss on the batch of training data.
+                    with accelerator.autocast():
+                        logits, _ = model(x)
+                        loss = torch.nn.functional.cross_entropy(
+                            logits.view(-1, logits.size(-1)),
+                            y.view(-1),
+                            ignore_index=-1,
+                        )
+
+                    # Calculate the gradients at each step in the network.
+                    accelerator.backward(loss)
+
+                    # On a multi-gpu machine or cluster, wait for all of the workers
+                    # to finish.
+                    accelerator.wait_for_everyone()
+
+                    # Clip the gradients.
+                    accelerator.clip_grad_norm_(
+                        model.parameters(),
+                        max_grad_norm,
                     )
 
-            # Calculate the gradients at each step in the network.
-            accelerator.backward(loss)
+                    # Perform the gradient descent step using the optimizer.
+                    optimizer.step()
 
-            # On a multi-gpu machine or cluster, wait for all of the workers
-            # to finish.
-            accelerator.wait_for_everyone()
+                    # Step the learning rate scheduler as well
+                    lr_scheduler.step()
 
-            # Clip the gradients.
-            accelerator.clip_grad_norm_(
-                model.parameters(),
-                max_grad_norm,
-            )
-
-            # Perform the gradient descent step using the optimizer.
-            optimizer.step()
-
-            # Step the learning rate scheduler as well
-            lr_scheduler.step()
-
-            # Reset the gradients for the next step.
-            optimizer.zero_grad()
+                    # Reset the gradients for the next step.
+                    optimizer.zero_grad()
 
             # Show the current loss in the progress bar.
             progress_bar.set_description(

@@ -20,13 +20,13 @@ tokenizer:
 # (for a total of 1033957938 tokens), which means there are
 # about ~1b tokens per epoch. GPT-1 was trained
 # for 100 epochs on a minibatch size of 64. Each epoch
-# was therefore approximately 16m steps at batch size of 64. At
-# a batch size of 64, with a context length of 512, there are about
+# was therefore approximately 32k (1B tokens // context_length = 2m examples // batch_size = 32k batches) steps at batch size of 64 with a context length
+# of 512. At a batch size of 64, with a context length of 512, there are about
 # 32k tokens per step on a single node. For our case, we have access
 # to a 1xA100 instance, so we will train with a batch size
 # of 12 (to fit into memory) and use gradient accumulation with 5 steps
 # to approximate the batch size of 64. In order to replicate 1b tokens per epoch,
-# 1 epoch at these settings would equal ~160k steps. Let's train for 10 epochs,
+# 1 epoch at these settings would equal ~32k steps. Let's train for 50 epochs,
 # so we will train for a total of 1.6m steps.
 training:
   # Batch size to use for training
@@ -43,7 +43,7 @@ training:
   # Number of steps for linear learning rate warmup
   warmup_steps: 2000
   # The maximum step where we cap the learning rate decay
-  learning_rate_decay_steps: 600000
+  learning_rate_decay_steps: 1600000
   # The base learning rate, without warmup or decay
   learning_rate: .00025
   # The minimum learning rate, if we are using decay

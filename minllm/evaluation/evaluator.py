@@ -35,6 +35,7 @@ class Evaluator:
         self, model: torch.nn.Module, dataloader: DataLoader, accelerator: Accelerator
     ):
         results = {}
+        model.eval()
         with torch.inference_mode():
             step = 0
             with tqdm(
@@ -56,4 +57,5 @@ class Evaluator:
                 # Compute all of the final results
                 for metric in self._metrics:
                     results[metric.name] = metric.compute().detach().numpy()
+        model.train()
         return results
