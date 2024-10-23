@@ -33,7 +33,7 @@ training:
   # The dataset we are training on
   dataset: "tinyshakespeare"
   # Mixed precision training settings
-  mixed_precision: "bf16"
+  mixed_precision: "no"
 
   # The optimizer to use for training.
   optimizer:
