@@ -59,7 +59,7 @@ def train(
     if num_training_steps <= 0:
         num_training_steps = config.training.training_steps
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     model = instantiate_from_config(config.model, use_config_struct=True)
     print(
         summary(
@@ -183,12 +183,13 @@ def train(
             # To help visualize training, periodically sample from the
             # diffusion model to see how well its doing.
             if step % save_and_sample_every_n == 0:
-                current_evaluation_results = evaluator.evaluate(
-                    model=model,
-                    dataloader=dataloader,
-                    accelerator=accelerator,
-                )
-                save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
+                if accelerator.is_main_process:
+                    current_evaluation_results = evaluator.evaluate(
+                        model=model,
+                        dataloader=dataloader,
+                        accelerator=accelerator,
+                    )
+                    save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
                 average_loss = average_loss_cumulative / float(save_and_sample_every_n)
                 average_loss_cumulative = 0.0
 

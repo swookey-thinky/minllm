@@ -1,0 +1,58 @@
+model:
+  target: minllm.models.gpt2.GPT
+  params:
+    context_length: 64
+    # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
+    vocab_size: 50304
+    num_layers: 6
+    num_attention_heads: 12
+    embedding_dim: 768
+    dropout: 0.0
+    # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+    bias: True
+
+training:
+  # Batch size to use for training
+  batch_size: 4
+  # Total number of steps to train for
+  training_steps: 10000
+  # Weight decay factor for all of the non-bias and layer norm terms
+  weight_decay: 0.1
+  # True to decay the learning rate using a cosine annealing strategy
+  learning_rate_decay: True
+  # Number of steps for linear learning rate warmup
+  warmup_steps: 250
+  # The maximum step where we cap the learning rate decay
+  learning_rate_decay_steps: 10000
+  # The base learning rate, without warmup or decay
+  learning_rate: .0006
+  # The minimum learning rate, if we are using decay
+  min_learning_rate: .00006
+  # Save and sample the model every N steps
+  save_and_sample_every_n: 500
+  # The dataset we are training on
+  dataset: "tinyshakespeare"
+  # Mixed precision training settings
+  mixed_precision: "bf16"
+
+  # The optimizer to use for training.
+  optimizer:
+    target: torch.optim.AdamW
+    params:
+      betas: [0.9, 0.95]
+
+  # Metrics to evaluate the training run on.
+  evaluation:
+    # The metrics to evaluate on
+    metrics: ['perplexity']
+    # The dataset to evaluate on. In this case, BooksCorpus
+    # does not have a hold out set, so we will evaluate on random
+    # samples from the set itself.
+    dataset: "tinyshakespeare"
+    # Evalate over a total of N samples
+    total_samples: 1024
+    # Evaluate 12 samples at a time
+    samples_per_batch: 128
+    # Context length of the model
+    context_length: 64
+

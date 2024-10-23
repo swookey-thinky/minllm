@@ -30,13 +30,12 @@ class Evaluator:
         # The number of samples to evaluate in each batch
         self._samples_per_batch = config.samples_per_batch
 
-    @torch.inference_mode()
     def evaluate(
         self, model: torch.nn.Module, dataloader: DataLoader, accelerator: Accelerator
     ):
         results = {}
-        model.eval()
-        with torch.inference_mode():
+        with torch.no_grad():
+            model.eval()
             step = 0
             with tqdm(
                 initial=step,
@@ -56,6 +55,6 @@ class Evaluator:
 
                 # Compute all of the final results
                 for metric in self._metrics:
-                    results[metric.name] = metric.compute().detach().numpy()
+                    results[metric.name] = metric.compute().clone().detach().numpy()
         model.train()
         return results
