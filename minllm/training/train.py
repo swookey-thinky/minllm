@@ -185,6 +185,7 @@ def train(
             # diffusion model to see how well its doing.
             if step % save_and_sample_every_n == 0:
                 if accelerator.is_main_process:
+                    torch.distributed.barrier()
                     current_evaluation_results = evaluator.evaluate(
                         model=model,
                         dataloader=dataloader,
