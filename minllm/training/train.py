@@ -185,13 +185,12 @@ def train(
             # diffusion model to see how well its doing.
             if step % save_and_sample_every_n == 0:
                 torch.distributed.barrier()
-                if accelerator.is_main_process:
-                    current_evaluation_results = evaluator.evaluate(
-                        model=model,
-                        dataloader=dataloader,
-                        accelerator=accelerator,
-                    )
-                    save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
+                current_evaluation_results = evaluator.evaluate(
+                    model=model,
+                    dataloader=dataloader,
+                    accelerator=accelerator,
+                )
+                save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
                 average_loss = average_loss_cumulative / float(save_and_sample_every_n)
                 average_loss_cumulative = 0.0
 
