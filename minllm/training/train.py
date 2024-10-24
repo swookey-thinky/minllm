@@ -92,14 +92,6 @@ def train(
         ),
     )
 
-    # Prepare the dataset with the accelerator. This makes sure all of the
-    # dataset items are placed onto the correct device.
-    dataloader = accelerator.prepare(dataloader)
-
-    # We are going to train for a fixed number of steps, so set the dataloader
-    # to repeat indefinitely over the entire dataset.
-    dataloader = cycle(dataloader)
-
     # Now create the optimizer
     optimizer = configure_optimizers(
         model=model,
@@ -109,8 +101,15 @@ def train(
     # Create the learning rate schedule
     lr_scheduler = get_cosine_schedule_with_warmup(optimizer, config=config)
 
-    # Move the model and the optimizer to the accelerator as well.
-    model, lr_scheduler = accelerator.prepare(model, lr_scheduler)
+    # Move everything to the accelerator together, and setup distributed training
+    # if we are setup for that.
+    model, dataloader, lr_scheduler = accelerator.prepare(
+        model, dataloader, lr_scheduler
+    )
+
+    # We are going to train for a fixed number of steps, so set the dataloader
+    # to repeat indefinitely over the entire dataset.
+    dataloader = cycle(dataloader)
 
     # Step counter to keep track of training
     step = 0
