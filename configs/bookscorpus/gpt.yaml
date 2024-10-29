@@ -19,15 +19,18 @@ tokenizer:
 # The BooksCorpus dataset has 1033957426 examples
 # (for a total of 1033957938 tokens), which means there are
 # about ~1b tokens per epoch. GPT-1 was trained
-# for 100 epochs on a minibatch size of 64. Each epoch
-# was therefore approximately 32k (1B tokens // context_length = 2m examples // batch_size = 32k batches) steps at batch size of 64 with a context length
+# for 100 epochs on a minibatch size of 64 on a 8xA100, which
+# means they trained on a total of ~100b tokens of data. Each epoch
+# was therefore approximately 32k (1B tokens // context_length = 2m examples // batch_size = 32k batches)
+# steps at batch size of 64 with a context length
 # of 512. At a batch size of 64, with a context length of 512, there are about
-# 32k tokens per step on a single node. For our case, we have access
+# 32k tokens per step (512 tokens * 64 samples in a batch) on a single node. For our case, we have access
 # to a 1xA100 instance, so we will train with a batch size
-# of 12 (to fit into memory) and use gradient accumulation with 5 steps
-# to approximate the batch size of 64. In order to replicate 1b tokens per epoch,
-# 1 epoch at these settings would equal ~32k steps. Let's train for 50 epochs,
-# so we will train for a total of 1.6m steps.
+# of 64 and use gradient accumulation with 5 steps
+# to approximate a batch size of 320. GPT-1 was trained for 100 epochs, at 1b tokens
+# per epoch, so we want to reproduce 100b tokens of total training. With
+# batch_size*context_length*gradient_accumulation_steps = 64*512*5 = 163840 tokens
+# per step, we need 100b / 163840 = 610,351 ~ 600k steps of training.
 training:
   # Batch size to use for training
   batch_size: 64
@@ -35,7 +38,7 @@ training:
   gradient_accumulation_steps: 5
   # Total number of steps to train for, equivalent to 10 epochs
   # given the above batch size.
-  training_steps: 1600000
+  training_steps: 600000
   # Weight decay factor for all of the non-bias and layer norm terms
   weight_decay: 0.01
   # True to decay the learning rate using a cosine annealing strategy
@@ -43,7 +46,7 @@ training:
   # Number of steps for linear learning rate warmup
   warmup_steps: 2000
   # The maximum step where we cap the learning rate decay
-  learning_rate_decay_steps: 1600000
+  learning_rate_decay_steps: 600000
   # The base learning rate, without warmup or decay
   learning_rate: .00025
   # The minimum learning rate, if we are using decay
