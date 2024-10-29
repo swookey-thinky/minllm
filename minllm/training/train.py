@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 from torchinfo import summary
 from tqdm.auto import tqdm
-from typing import Optional
+import torch.distributed as dist
 
 from minllm.datasets.utils import load_dataset
 from minllm.evaluation.evaluator import Evaluator
@@ -192,7 +192,9 @@ def train(
             # To help visualize training, periodically sample from the
             # diffusion model to see how well its doing.
             if step % save_and_sample_every_n == 0:
-                torch.distributed.barrier()
+                # Only barrier if we are running distributed.
+                if dist.is_initialized():
+                    torch.distributed.barrier()
                 current_evaluation_results = evaluator.evaluate(
                     model=model,
                     dataloader=dataloader,
