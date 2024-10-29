@@ -27,6 +27,7 @@ def train(
     num_training_steps: int = -1,
     save_and_sample_every_n: int = -1,
     mixed_precision: str = "",
+    resume_from_checkpoint: str = "",
 ):
     # Open the model configuration
     config = load_yaml(config_path)
@@ -100,6 +101,16 @@ def train(
         config=config.training,
     )
 
+    # If we are resuming from a checkpoint, load the model and optimizer states,
+    # and set the surrent step to the last training step.
+    step = 0
+    if resume_from_checkpoint:
+        checkpoint = torch.load(resume_from_checkpoint, map_location="cpu")
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        model.load_state_dict(checkpoint["model_state_dict"])
+        step = checkpoint["step"]
+        print(f"Resuming training from step {step}.")
+
     # Create the learning rate schedule
     lr_scheduler = get_cosine_schedule_with_warmup(optimizer, config=config)
 
@@ -112,9 +123,6 @@ def train(
     # We are going to train for a fixed number of steps, so set the dataloader
     # to repeat indefinitely over the entire dataset.
     dataloader = cycle(dataloader)
-
-    # Step counter to keep track of training
-    step = 0
 
     # Not mentioned in the DDPM paper, but the original implementation
     # used gradient clipping during training.

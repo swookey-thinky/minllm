@@ -13,6 +13,7 @@ def main(override=None):
     parser.add_argument("--num_training_steps", type=int, default=-1)
     parser.add_argument("--mixed_precision", type=str, default="")
     parser.add_argument("--output_path", type=str, default="output")
+    parser.add_argument("--resume_from_checkpoint", type=str, default="")
 
     args = parser.parse_args()
 
@@ -22,6 +23,7 @@ def main(override=None):
         batch_size=args.batch_size,
         num_training_steps=args.num_training_steps,
         mixed_precision=args.mixed_precision,
+        resume_from_checkpoint=args.resume_from_checkpoint,
     )
 
 
