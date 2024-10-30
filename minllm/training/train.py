@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from torchinfo import summary
 from tqdm.auto import tqdm
 import torch.distributed as dist
+from typing import Optional
 
 from minllm.datasets.utils import load_dataset
 from minllm.evaluation.evaluator import Evaluator
@@ -28,6 +29,7 @@ def train(
     save_and_sample_every_n: int = -1,
     mixed_precision: str = "",
     resume_from_checkpoint: str = "",
+    compile: Optional[bool] = None,
 ):
     # Open the model configuration
     config = load_yaml(config_path)
@@ -124,8 +126,7 @@ def train(
     # to repeat indefinitely over the entire dataset.
     dataloader = cycle(dataloader)
 
-    # Not mentioned in the DDPM paper, but the original implementation
-    # used gradient clipping during training.
+    # Setup gradient clipping to help stabilize training
     max_grad_norm = 1.0
     average_loss = 0.0
     average_loss_cumulative = 0.0
@@ -134,6 +135,17 @@ def train(
         if save_and_sample_every_n > 0
         else config.training.save_and_sample_every_n
     )
+
+    # Compile the model if we are asked to
+    do_compile = False
+    if compile is not None:
+        do_compile = compile
+    else:
+        if "training" in config and "compile" in config.training:
+            do_compile = config.training.compile
+    print(f"Model compilation setting: {do_compile}")
+    if do_compile:
+        model = torch.compile(model)
 
     current_evaluation_results = {}
     with tqdm(initial=step, total=num_training_steps) as progress_bar:
@@ -201,7 +213,9 @@ def train(
                     accelerator=accelerator,
                 )
                 save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
-                average_loss = average_loss_cumulative / float(save_and_sample_every_n)
+                average_loss = average_loss_cumulative / float(
+                    save_and_sample_every_n * gradient_accumulation_steps
+                )
                 average_loss_cumulative = 0.0
 
             # Update the current step.
