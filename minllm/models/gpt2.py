@@ -24,6 +24,7 @@ class GPT(nn.Module):
         assert config.context_length is not None
         self._config = config
 
+        print(f"Instantiating GPT-2 with {config.to_dict()}")
         self.transformer = nn.ModuleDict(
             dict(
                 wte=nn.Embedding(config.vocab_size, config.embedding_dim),

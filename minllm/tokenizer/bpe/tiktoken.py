@@ -13,7 +13,7 @@ class TiktokenTokenizer:
     def __init__(self, name: str = "gpt2"):
         super().__init__()
 
-        self._encoding = tiktoken.get_encoding(name, allowed_special={"<|endoftext|>"})
+        self._encoding = tiktoken.get_encoding(name)
         self._encoding_name = name
 
     def train(self, text: str, vocab_size: int, verbose: bool = False):
@@ -25,7 +25,7 @@ class TiktokenTokenizer:
     ) -> List[int]:
         # encode_ordinary ignores any special tokens
         if with_special:
-            ids = self._encoding.encode(text)
+            ids = self._encoding.encode(text, allowed_special={"<|endoftext|>"})
         else:
             ids = self._encoding.encode_ordinary(text)
 
@@ -38,7 +38,7 @@ class TiktokenTokenizer:
         return self._encoding.decode(ids)
 
     def name(self) -> str:
-        return f"tiktoken_{self._name}"
+        return f"tiktoken_{self._encoding_name}"
 
     def save(self, file_prefix: str, output_path: str):
         """
