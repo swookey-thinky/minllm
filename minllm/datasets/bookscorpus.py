@@ -1,13 +1,10 @@
-import json
+from datasets import load_dataset
 import os
 import numpy as np
-import requests
-import tarfile
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from datasets import load_dataset
 from minllm.tokenizer.bpe.base import Tokenizer
 from minllm.datasets.utils import download_file_from_google_drive
 
@@ -42,6 +39,7 @@ class BooksCorpusTokenized(Dataset):
         tokenizer: Tokenizer,
         context_length: int = 1024,
         download: bool = True,
+        split: str = "train",
     ):
         """
         Args:
@@ -53,35 +51,43 @@ class BooksCorpusTokenized(Dataset):
 
         archive_base = "BooksCorpus"
         self._token_file_name_root = os.path.join(root_dir, f"{archive_base}")
-        self._token_file_template = "tokens_{shard_idx}_{context_length}.npy"
-
-        first_shard_name = os.path.join(
-            self._token_file_name_root,
-            self._token_file_template.format(
-                shard_idx=0, context_length=context_length
-            ),
+        self._train_file_name = os.path.join(
+            self._token_file_name_root, f"tokens_{tokenizer.name}_train.bin"
+        )
+        self._val_file_name = os.path.join(
+            self._token_file_name_root, f"tokens_{tokenizer.name}_val.bin"
         )
 
-        if not os.path.isfile(first_shard_name):
-            os.makedirs(os.path.dirname(first_shard_name), exist_ok=True)
+        if not os.path.isfile(self._train_file_name):
+            os.makedirs(os.path.dirname(self._train_file_name), exist_ok=True)
 
-            if download and context_length == 512:
+            train_download_ids = {
+                "spacy": "1Vo4YUB9vIZioa-Za0pNgOlP2vGcPVtrW",
+                "gpt2": "",
+            }
+            val_download_ids = {
+                "spacy": "1Vo4YUB9vIZioa-Za0pNgOlP2vGcPVtrW",
+                "gpt2": "",
+            }
+
+            if download and tokenizer.name() in train_download_ids:
                 download_file_from_google_drive(
-                    id="1Vo4YUB9vIZioa-Za0pNgOlP2vGcPVtrW",
-                    destination=first_shard_name,
+                    id=train_download_ids[tokenizer.name()],
+                    destination=self._train_file_name,
+                )
+                download_file_from_google_drive(
+                    id=val_download_ids[tokenizer.name()],
+                    destination=self._val_file_name,
                 )
             else:
-                raise NotImplementedError()
+                self._prepare(tokenizer=tokenizer)
 
-        # Only mmap the data once
-        shard_file_name = os.path.join(
-            self._token_file_name_root,
-            self._token_file_template.format(
-                shard_idx=0, context_length=self._context_length
-            ),
-        )
-        self._shard_data = np.load(shard_file_name)
-        self._data_length = self._shard_data.shape[0]
+        if split == "train":
+            self._shard_data = np.load(self._train_file_name)
+            self._data_length = self._shard_data.shape[0]
+        else:
+            self._shard_data = np.load(self._val_file_name)
+            self._data_length = self._shard_data.shape[0]
 
     def __len__(self):
         # The last item we can get
@@ -104,3 +110,52 @@ class BooksCorpusTokenized(Dataset):
         assert x.shape[0] == self._context_length, f"{x.shape} {idx}"
         assert y.shape[0] == self._context_length, f"{y.shape} {idx}"
         return x, y
+
+    def _prepare(self, tokenizer: Tokenizer):
+        num_proc = 8
+        num_proc_load_dataset = num_proc
+
+        dataset = load_dataset(
+            "bookcorpus/bookcorpus",
+            trust_remote_code=True,
+            num_proc=num_proc_load_dataset,
+        )
+        split_dataset = dataset["train"].train_test_split(
+            test_size=0.0005, seed=2357, shuffle=True
+        )
+        split_dataset["val"] = split_dataset.pop("test")  # rename the test split to val
+
+        # Tokenize the dataset
+        def process(example):
+            ids = tokenizer.encode(example["text"], append_eot=True)
+            out = {"ids": ids, "len": len(ids)}
+            return out
+
+        tokenized = split_dataset.map(
+            process,
+            remove_columns=["text"],
+            desc="Tokenizing the splits",
+            num_proc=num_proc,
+        )
+
+        # concatenate all the ids in each dataset into one large file we can use for training
+        for split, dset in tokenized.items():
+            arr_len = np.sum(dset["len"], dtype=np.uint64)
+            filename = os.path.join(
+                self._token_file_name_root, f"tokens_{tokenizer.name}_{split}.bin"
+            )
+            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
+            arr = np.memmap(filename, dtype=dtype, mode="w+", shape=(arr_len,))
+            total_batches = 1024
+
+            idx = 0
+            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
+                # Batch together samples for faster write
+                batch = dset.shard(
+                    num_shards=total_batches, index=batch_idx, contiguous=True
+                ).with_format("numpy")
+                arr_batch = np.concatenate(batch["ids"])
+                # Write into mmap
+                arr[idx : idx + len(arr_batch)] = arr_batch
+                idx += len(arr_batch)
+            arr.flush()

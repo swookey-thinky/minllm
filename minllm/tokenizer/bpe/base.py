@@ -26,13 +26,19 @@ class Tokenizer:
         raise NotImplementedError
 
     @abstractmethod
-    def encode(self, text: str) -> List[int]:
+    def encode(
+        self, text: str, with_special: bool = False, append_eot: bool = False
+    ) -> List[int]:
         # Tokenizer can encode a string into a list of integers
         raise NotImplementedError
 
     @abstractmethod
     def decode(self, ids: List[int]):
         # Tokenizer can decode a list of integers into a string
+        raise NotImplementedError
+
+    @abstractmethod
+    def name(self) -> str:
         raise NotImplementedError
 
     def _build_vocab(self):

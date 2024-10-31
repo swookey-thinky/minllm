@@ -160,7 +160,9 @@ class SpacyTextTokenizer(Tokenizer):
         # Tokenizer can train a vocabulary of size vocab_size from text
         raise NotImplementedError
 
-    def encode(self, text: str) -> List[int]:
+    def encode(
+        self, text: str, with_special: bool = False, append_eot: bool = False
+    ) -> List[int]:
         # Tokenizer can encode a string into a list of integers
         return self._text_encoder.encode([text])[0]
 
@@ -168,6 +170,9 @@ class SpacyTextTokenizer(Tokenizer):
         # Tokenizer can decode a list of integers into a string
         text = "".join(self._text_encoder.decoder[idx] for idx in ids)
         return text
+
+    def name(self) -> str:
+        return "spacy"
 
     def save(self, file_prefix: str, output_path: str):
         raise NotImplementedError
