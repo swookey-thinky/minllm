@@ -82,12 +82,11 @@ class BooksCorpusTokenized(Dataset):
             else:
                 self._prepare(tokenizer=tokenizer)
 
-        if split == "train":
-            self._shard_file_name = self._train_file_name
-            self._data_length = self._shard_data.shape[0]
-        else:
-            self._shard_file_name = self._val_file_name
-            self._data_length = self._shard_data.shape[0]
+        self._data_file_name = (
+            self._train_file_name if split == "train" else self._val_file_name
+        )
+        data = np.memmap(self._data_file_name, dtype=np.uint16, mode="r")
+        self._data_length = len(data)
 
     def __len__(self):
         # The last item we can get
@@ -101,7 +100,7 @@ class BooksCorpusTokenized(Dataset):
         if idx > (self._data_length - self._context_length - 1):
             raise IndexError()
 
-        data = np.memmap(self._shard_file_name, dtype=np.uint16, mode="r")
+        data = np.memmap(self._data_file_name, dtype=np.uint16, mode="r")
         x = torch.from_numpy(data[idx : idx + self._context_length].astype(np.int64))
         y = torch.from_numpy(
             data[idx + 1 : idx + 1 + self._context_length].astype(np.int64)
