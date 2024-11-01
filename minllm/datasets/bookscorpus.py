@@ -83,10 +83,10 @@ class BooksCorpusTokenized(Dataset):
                 self._prepare(tokenizer=tokenizer)
 
         if split == "train":
-            self._shard_data = np.load(self._train_file_name, allow_pickle=True)
+            self._shard_file_name = self._train_file_name
             self._data_length = self._shard_data.shape[0]
         else:
-            self._shard_data = np.load(self._val_file_name, allow_pickle=True)
+            self._shard_file_name = self._val_file_name
             self._data_length = self._shard_data.shape[0]
 
     def __len__(self):
@@ -101,11 +101,10 @@ class BooksCorpusTokenized(Dataset):
         if idx > (self._data_length - self._context_length - 1):
             raise IndexError()
 
-        x = torch.from_numpy(
-            self._shard_data[idx : idx + self._context_length].astype(np.int64)
-        )
+        data = np.memmap(self._shard_file_name, dtype=np.uint16, mode="r")
+        x = torch.from_numpy(data[idx : idx + self._context_length].astype(np.int64))
         y = torch.from_numpy(
-            self._shard_data[idx + 1 : idx + 1 + self._context_length].astype(np.int64)
+            data[idx + 1 : idx + 1 + self._context_length].astype(np.int64)
         )
         assert x.shape[0] == self._context_length, f"{x.shape} {idx}"
         assert y.shape[0] == self._context_length, f"{y.shape} {idx}"
