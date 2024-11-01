@@ -52,10 +52,10 @@ class BooksCorpusTokenized(Dataset):
         archive_base = "BooksCorpus"
         self._token_file_name_root = os.path.join(root_dir, f"{archive_base}")
         self._train_file_name = os.path.join(
-            self._token_file_name_root, f"tokens_{tokenizer.name}_train.bin"
+            self._token_file_name_root, f"tokens_{tokenizer.name()}_train.bin"
         )
         self._val_file_name = os.path.join(
-            self._token_file_name_root, f"tokens_{tokenizer.name}_val.bin"
+            self._token_file_name_root, f"tokens_{tokenizer.name()}_val.bin"
         )
 
         if not os.path.isfile(self._train_file_name):
@@ -142,7 +142,7 @@ class BooksCorpusTokenized(Dataset):
         for split, dset in tokenized.items():
             arr_len = np.sum(dset["len"], dtype=np.uint64)
             filename = os.path.join(
-                self._token_file_name_root, f"tokens_{tokenizer.name}_{split}.bin"
+                self._token_file_name_root, f"tokens_{tokenizer.name()}_{split}.bin"
             )
             dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
             arr = np.memmap(filename, dtype=dtype, mode="w+", shape=(arr_len,))
