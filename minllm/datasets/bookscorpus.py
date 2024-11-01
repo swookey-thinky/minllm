@@ -83,10 +83,10 @@ class BooksCorpusTokenized(Dataset):
                 self._prepare(tokenizer=tokenizer)
 
         if split == "train":
-            self._shard_data = np.load(self._train_file_name)
+            self._shard_data = np.load(self._train_file_name, allow_pickle=True)
             self._data_length = self._shard_data.shape[0]
         else:
-            self._shard_data = np.load(self._val_file_name)
+            self._shard_data = np.load(self._val_file_name, allow_pickle=True)
             self._data_length = self._shard_data.shape[0]
 
     def __len__(self):
