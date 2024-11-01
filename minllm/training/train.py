@@ -63,7 +63,12 @@ def train(
         num_training_steps = config.training.training_steps
 
     dataloader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=0
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        pin_memory=True,
+        non_blocking=True,
+        num_workers=4,
     )
     model = instantiate_from_config(config.model, use_config_struct=True)
     print(

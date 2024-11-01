@@ -17,7 +17,11 @@ OUTPUT_PATH = "output/samples"
 
 
 def sample(
-    config_path: str, checkpoint_path: str, tokens_to_generate: int, initial_text: str
+    config_path: str,
+    checkpoint_path: str,
+    tokens_to_generate: int,
+    initial_text: str,
+    mixed_precision: str,
 ):
     num_samples = 1
 
@@ -38,19 +42,35 @@ def sample(
     )
 
     # The accelerate library will handle of the GPU device management for us.
+    mixed_precision = (
+        mixed_precision if mixed_precision != "" else config.training.mixed_precision
+    )
+
+    print(f"Sampling with mixed precision: {mixed_precision}")
     accelerator = Accelerator(
         dataloader_config=DataLoaderConfiguration(split_batches=False),
-        mixed_precision="no",
+        mixed_precision=mixed_precision,
     )
+
     # Move the model and the optimizer to the accelerator as well.
     model = accelerator.prepare(model)
-
     device = next(model.parameters()).device
-    token_encoder = tiktoken.get_encoding("gpt2")
-    encode = lambda s: token_encoder.encode(s, allowed_special={"<|endoftext|>"})
-    decode = lambda l: token_encoder.decode(l)
 
+    # Load a tokenizer if we have one
+    tokenizer = None
+    if "tokenizer" in config:
+        tokenizer = instantiate_from_config(config.tokenizer.to_dict())
+        encode = lambda s: tokenizer.encode(s)
+        decode = lambda t: tokenizer.decode(t)
+    else:
+        token_encoder = tiktoken.get_encoding("gpt2")
+        encode = lambda s: token_encoder.encode(s, allowed_special={"<|endoftext|>"})
+        decode = lambda l: token_encoder.decode(l)
+
+    # Encode the initial text
     start_ids = encode(initial_text)
+
+    # Batch the input (batch size of 1)
     x = torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...]
 
     # run generation
@@ -63,7 +83,7 @@ def sample(
                 context_length=config.model.params.context_length,
                 max_new_tokens=tokens_to_generate,
             )
-            print(decode(y[0].tolist()))
+            print(decode(y[0].tolist()).replace("</w>", " "))
             print("---------------")
 
 
@@ -113,6 +133,7 @@ def main(override=None):
     parser.add_argument("--checkpoint", type=str, required=True)
     parser.add_argument("--tokens_to_generate", type=int, default=1024)
     parser.add_argument("--initial_text", type=str, default="")
+    parser.add_argument("--mixed_precision", type=str, default="")
     args = parser.parse_args()
 
     sample(
@@ -120,6 +141,7 @@ def main(override=None):
         checkpoint_path=args.checkpoint,
         tokens_to_generate=args.tokens_to_generate,
         initial_text=args.initial_text,
+        mixed_precision=args.mixed_precision,
     )
 
 
