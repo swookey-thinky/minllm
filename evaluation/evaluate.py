@@ -44,7 +44,7 @@ def main(override=None):
         batch_size=config.training.evaluation.samples_per_batch,
         shuffle=True,
         pin_memory=True,
-        num_workers=0,
+        num_workers=4,
     )
 
     if args.model_weights_checkpoint:
