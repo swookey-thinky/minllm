@@ -1,7 +1,7 @@
 import argparse
 from accelerate import Accelerator, DataLoaderConfiguration
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler
 
 from minllm.datasets.utils import load_dataset
 from minllm.evaluation.evaluator import Evaluator
@@ -39,10 +39,16 @@ def main(override=None):
         tokenizer=tokenizer,
     )
 
+    # Use a RandomSampler with replacement, otherwise for large datasets,
+    # the non-replacement version will try to create an incredibly large list
+    # of random indices and most likely blow out our memory. For example,
+    # OpenWebText has ~9b tokens in it, so attempting to create a 9b list of random
+    # indices of int64 dtype will take 9*8~72GB of RAM, and if doing this on a multi-gpu
+    # node, well, boom.
     dataloader = DataLoader(
         dataset,
         batch_size=config.training.evaluation.samples_per_batch,
-        shuffle=True,
+        sampler=RandomSampler(data_source=dataset, replacement=True),
         pin_memory=True,
         num_workers=4,
     )
