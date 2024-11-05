@@ -73,7 +73,6 @@ def train(
         batch_size=batch_size,
         sampler=RandomSampler(data_source=dataset, replacement=True),
         pin_memory=True,
-        non_blocking=True,
         num_workers=4,
     )
     model = instantiate_from_config(config.model, use_config_struct=True)
