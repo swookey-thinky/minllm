@@ -30,6 +30,7 @@ def train(
     mixed_precision: str = "",
     resume_from_checkpoint: str = "",
     compile: Optional[bool] = None,
+    disable_evaluation: bool = False,
 ):
     # Open the model configuration
     config = load_yaml(config_path)
@@ -170,12 +171,7 @@ def train(
 
                     # Calculate the loss on the batch of training data.
                     with accelerator.autocast():
-                        logits, _ = model(x)
-                        loss = torch.nn.functional.cross_entropy(
-                            logits.view(-1, logits.size(-1)),
-                            y.view(-1),
-                            ignore_index=-1,
-                        )
+                        _, _, loss = model(x, targets=y)
 
                     # Calculate the gradients at each step in the network.
                     accelerator.backward(loss)
@@ -217,12 +213,15 @@ def train(
                 # Only barrier if we are running distributed.
                 if dist.is_initialized():
                     torch.distributed.barrier()
-                current_evaluation_results = evaluator.evaluate(
-                    model=model,
-                    dataloader=dataloader,
-                    accelerator=accelerator,
-                )
-                save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
+
+                if accelerator.is_main_process:
+                    if not disable_evaluation:
+                        current_evaluation_results = evaluator.evaluate(
+                            model=model,
+                            dataloader=dataloader,
+                            accelerator=accelerator,
+                        )
+                    save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
                 average_loss = average_loss_cumulative / float(
                     save_and_sample_every_n * gradient_accumulation_steps
                 )
@@ -235,12 +234,17 @@ def train(
             progress_bar.update(1)
 
     # Final results.
-    current_evaluation_results = evaluator.evaluate(
-        model=model,
-        dataloader=dataloader,
-        accelerator=accelerator,
-    )
-    save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
+    if dist.is_initialized():
+        torch.distributed.barrier()
+
+    if accelerator.is_main_process:
+        if not disable_evaluation:
+            current_evaluation_results = evaluator.evaluate(
+                model=model,
+                dataloader=dataloader,
+                accelerator=accelerator,
+            )
+        save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
 
 
 def configure_optimizers(model: torch.nn.Module, config: DotConfig):

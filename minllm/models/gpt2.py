@@ -58,7 +58,7 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-    def forward(self, idx):
+    def forward(self, idx, targets=None):
         device = idx.device
         _, t = idx.size()
         assert (
@@ -78,6 +78,16 @@ class GPT(nn.Module):
             x = block(x)
         x = self.transformer.ln_f(x)
         logits = self.lm_head(x)
+
+        # Calculate the loss in the model so that multi-gpu memory
+        # usage is not gated back in the main process.
+        if targets is not None:
+            loss = torch.nn.functional.cross_entropy(
+                logits.view(-1, logits.size(-1)),
+                targets.view(-1),
+                ignore_index=-1,
+            )
+            return logits, x, loss
         return logits, x
 
     def logits(self, h: torch.Tensor):

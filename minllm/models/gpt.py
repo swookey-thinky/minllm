@@ -8,6 +8,7 @@ https://github.com/openai/finetune-transformer-lm/blob/master/train.py#L162
 import math
 import torch
 import torch.nn as nn
+from typing import Optional
 
 from minllm.layers.attention import CausalSelfAttention
 from minllm.layers.base import LayerNorm, MLP
@@ -71,7 +72,7 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-    def forward(self, idx: torch.Tensor):
+    def forward(self, idx: torch.Tensor, targets: Optional[torch.Tensor] = None):
         # idx is the batched tensor of tokens, of shape (B, L)
         device = idx.device
         _, t = idx.size()
@@ -89,6 +90,16 @@ class GPT(nn.Module):
             x = block(x)
         # Note these weights are tied to the embedding weights above.
         logits = self.lm_head(x)
+
+        # Calculate the loss in the model so that multi-gpu memory
+        # usage is not gated back in the main process.
+        if targets is not None:
+            loss = torch.nn.functional.cross_entropy(
+                logits.view(-1, logits.size(-1)),
+                targets.view(-1),
+                ignore_index=-1,
+            )
+            return logits, x, loss
         return logits, x
 
     def logits(self, h: torch.Tensor):
