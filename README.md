@@ -61,6 +61,7 @@ If you have issues with PyTorch and different CUDA versions on your instance, ma
 | September 2024 | Molmo | [Molmo and PixMo: Open Weights and Open Data for State-of-the-Art Multimodal Models](https://molmo.allenai.org/paper.pdf) | |
 | September 2024 | NVLM | [NVLM: Open Frontier-Class Multimodal LLMs](https://arxiv.org/abs/2409.11402) | |
 | September 2024 | SCoRe | [Training Language Models to Self-Correct via Reinforcement Learning](https://arxiv.org/abs/2409.12917) | |
+| October 2024 | TokenFormer | [TokenFormer: Rethinking Transformer Scaling with Tokenized Model Parameters](https://arxiv.org/abs/2410.23168) | |
 
 ## Datasets
 
