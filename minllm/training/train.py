@@ -11,7 +11,10 @@ from typing import Optional
 
 from minllm.datasets.utils import load_dataset
 from minllm.evaluation.evaluator import Evaluator
-from minllm.schedules import get_cosine_schedule_with_warmup
+from minllm.schedules import (
+    get_cosine_schedule_with_warmup,
+    get_trapezoidal_schedule_with_warmup,
+)
 from minllm.utils import (
     cycle,
     get_obj_from_str,
@@ -130,7 +133,15 @@ def train(
         config=config.training,
     )
     # Create the learning rate schedule
-    lr_scheduler = get_cosine_schedule_with_warmup(optimizer, config=config)
+    if "learning_rate_schedule" in config.training:
+        assert config.training.learning_rate_schedule in ["cosine", "trapezoidal"]
+        lr_scheduler = (
+            get_trapezoidal_schedule_with_warmup(optimizer, config=config)
+            if config.training.learning_rate_schedule == "trapezoidal"
+            else get_cosine_schedule_with_warmup(optimizer, config=config)
+        )
+    else:
+        lr_scheduler = get_cosine_schedule_with_warmup(optimizer, config=config)
 
     # Finally move the optimizer and the learning rate schedule to the device.
     optimizer, lr_scheduler = accelerator.prepare(optimizer, lr_scheduler)

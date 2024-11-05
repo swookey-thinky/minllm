@@ -79,3 +79,43 @@ def get_constant_schedule_with_warmup(
         return 1.0
 
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+
+
+def get_trapezoidal_schedule_with_warmup(
+    optimizer: torch.optim.Optimizer, config: DotConfig
+):
+    num_warmup_steps = config.training.warmup_steps
+    num_warmdown_steps = config.training.warmdown_steps
+
+    print(
+        f"Creating trapezoidal learning rate schedule with {num_warmup_steps} warmup and {num_warmdown_steps} warmdown steps."
+    )
+
+    def get_learning_rate(step: int):
+        # Factor in the number of gradient accumulation steps
+        # when doing any calculations
+        gradient_accumulation_steps = (
+            config.training.gradient_accumulation_steps
+            if "gradient_accumulation_steps" in config.training
+            else 1
+        )
+        warmup_steps = config.training.warmup_steps // gradient_accumulation_steps
+        warmupdown_steps = config.training.warmdown_steps // gradient_accumulation_steps
+        learning_rate_decay_steps = (
+            config.training.learning_rate_decay_steps // gradient_accumulation_steps
+        )
+
+        # 1) linear warmup for warmup_iters steps
+        if step < warmup_steps:
+            return step / warmup_steps
+
+        # 2) constant lr for a while
+        if step < config.training.training_steps - warmupdown_steps:
+            return 1.0
+
+        # 3) linear warmdown
+        decay_ratio = (config.training.training_steps - step) / warmupdown_steps
+        assert 0 <= decay_ratio <= 1
+        return decay_ratio
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, get_learning_rate)
