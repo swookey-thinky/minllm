@@ -11,6 +11,11 @@ model:
     # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
     bias: True
 
+tokenizer:
+  target: minllm.tokenizer.bpe.tiktoken.TiktokenTokenizer
+  params:
+    name: "gpt2"
+
 training:
   # Batch size to use for training
   batch_size: 128
