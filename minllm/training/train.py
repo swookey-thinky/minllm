@@ -131,8 +131,8 @@ def train(
 
     # Move everything to the accelerator together, and setup distributed training
     # if we are setup for that.
-    model, dataloader, lr_scheduler = accelerator.prepare(
-        model, dataloader, lr_scheduler
+    model, dataloader, optimizer, lr_scheduler = accelerator.prepare(
+        model, dataloader, optimizer, lr_scheduler
     )
 
     # We are going to train for a fixed number of steps, so set the dataloader
