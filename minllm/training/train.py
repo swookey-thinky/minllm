@@ -77,16 +77,6 @@ def train(
         num_workers=4,
     )
     model = instantiate_from_config(config.model, use_config_struct=True)
-    print(
-        summary(
-            model=model,
-            input_size=(
-                batch_size,
-                config.model.params.context_length,
-            ),
-            dtypes=[torch.int64],
-        )
-    )
 
     # Check to see if we are using gradient accumulation
     gradient_accumulation_steps = 1
@@ -107,6 +97,18 @@ def train(
             sync_with_dataloader=False,
         ),
     )
+
+    if accelerator.is_main_process:
+        print(
+            summary(
+                model=model,
+                input_size=(
+                    batch_size,
+                    config.model.params.context_length,
+                ),
+                dtypes=[torch.int64],
+            )
+        )
 
     # Now create the optimizer
     optimizer = configure_optimizers(
@@ -205,7 +207,7 @@ def train(
                             ]
                         )
                     )
-                    average_loss_cumulative += loss.item()
+                    average_loss_cumulative += loss.detach().cpu().item()
 
             # To help visualize training, periodically sample from the
             # diffusion model to see how well its doing.
