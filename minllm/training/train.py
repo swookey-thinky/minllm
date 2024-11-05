@@ -131,7 +131,7 @@ def train(
     )
     # Create the learning rate schedule
     lr_scheduler = get_cosine_schedule_with_warmup(optimizer, config=config)
-    optimizer, lr_scheduler = accelerator.prepate(optimizer, lr_scheduler)
+    optimizer, lr_scheduler = accelerator.prepare(optimizer, lr_scheduler)
 
     # We are going to train for a fixed number of steps, so set the dataloader
     # to repeat indefinitely over the entire dataset.
