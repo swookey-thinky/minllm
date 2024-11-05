@@ -69,7 +69,13 @@ def download_file_from_google_drive(id, destination):
 def load_dataset(
     dataset: str, context_length: int, tokenizer: Optional[Tokenizer] = None
 ) -> Dataset:
-    assert dataset in ["tinyshakespeare", "bookscorpus", "race", "openwebtext"]
+    assert dataset in [
+        "tinyshakespeare",
+        "bookscorpus",
+        "race",
+        "openwebtext",
+        "fineweb10b",
+    ]
 
     if dataset == "tinyshakespeare":
         from minllm.datasets import tinyshakespeare
@@ -93,6 +99,12 @@ def load_dataset(
         from minllm.datasets import race
 
         return race.RACETokenized(
+            ".", context_length=context_length, tokenizer=tokenizer
+        )
+    elif dataset == "fineweb10b":
+        from minllm.datasets import fineweb
+
+        return fineweb.FineWeb10BTokenized(
             ".", context_length=context_length, tokenizer=tokenizer
         )
 
