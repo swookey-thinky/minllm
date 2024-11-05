@@ -24,6 +24,26 @@ If you have issues with PyTorch and different CUDA versions on your instance, ma
 > pip install torch==2.1.0 torchvision --index-url https://download.pytorch.org/whl/cu118
 ```
 
+If you have an existing installation of torch and torchvision and don't to override it, you can use the `requirements_notorch.txt` file for dependency installation:
+
+```
+> pip install -r requirements_notorch.txt
+```
+
+## Training the Models
+
+In general, all models are meant to be trained using the configuration file for the dataset/model combo. So for example, to train a GPT-2 model on OpenWebText, you can do the following:
+
+```
+> python training/train.py --config_path configs/openwebtext/gpt2.yaml
+```
+
+All training is multi-GPU aware as well, so if you are lucky enough to have an 8x node for example, you can use:
+
+```
+> torchrun --standalone --nproc_per_node=8 training/train.py --config_path configs/openwebtext/gpt2.yaml
+```
+
 ## Papers
 
 | Date  | Name  | Paper | Config | Instructions

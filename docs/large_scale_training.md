@@ -484,6 +484,17 @@ FairScale is a more research focused version of large scale training algorithms 
 [Github](https://github.com/NVIDIA/apex)
 [Documentation](https://nvidia.github.io/apex/)
 
+### Nanotron
+
+Nanotron is a library for pretraining transformer models. It provides a simple and flexible API to pretrain models on custom datasets. Nanotron is designed to be easy to use, fast, and scalable. It is built with the following principles in mind:
+
+- Simplicity: Nanotron is designed to be easy to use. It provides a simple and flexible API to pretrain models on custom datasets.
+- Performance: Optimized for speed and scalability, Nanotron uses the latest techniques to train models faster and more efficiently.
+
+#### References
+
+[Nanotron](https://github.com/huggingface/nanotron)
+
 ### Accelerate
 
 #### References
