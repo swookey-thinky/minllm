@@ -120,8 +120,8 @@ def train(
         step = checkpoint["step"]
         print(f"Resuming training from step {step}.")
 
-    # Move everything to the accelerator together, and setup distributed training
-    # if we are setup for that.
+    # Move everything to the accelerator. First we move the model and the dataset,
+    # so that the optimizer can see the on-device parameters.
     model, dataloader = accelerator.prepare(model, dataloader)
 
     # Now create the optimizer
@@ -131,6 +131,8 @@ def train(
     )
     # Create the learning rate schedule
     lr_scheduler = get_cosine_schedule_with_warmup(optimizer, config=config)
+
+    # Finally move the optimizer and the learning rate schedule to the device.
     optimizer, lr_scheduler = accelerator.prepare(optimizer, lr_scheduler)
 
     # We are going to train for a fixed number of steps, so set the dataloader
