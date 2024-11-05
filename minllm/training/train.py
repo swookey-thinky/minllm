@@ -110,12 +110,6 @@ def train(
             )
         )
 
-    # Now create the optimizer
-    optimizer = configure_optimizers(
-        model=model,
-        config=config.training,
-    )
-
     # If we are resuming from a checkpoint, load the model and optimizer states,
     # and set the surrent step to the last training step.
     step = 0
@@ -131,9 +125,16 @@ def train(
 
     # Move everything to the accelerator together, and setup distributed training
     # if we are setup for that.
-    model, dataloader, optimizer, lr_scheduler = accelerator.prepare(
-        model, dataloader, optimizer, lr_scheduler
+    model, dataloader, lr_scheduler = accelerator.prepare(
+        model, dataloader, lr_scheduler
     )
+
+    # Now create the optimizer
+    optimizer = configure_optimizers(
+        model=model,
+        config=config.training,
+    )
+    optimizer = accelerator.prepate(optimizer)
 
     # We are going to train for a fixed number of steps, so set the dataloader
     # to repeat indefinitely over the entire dataset.
