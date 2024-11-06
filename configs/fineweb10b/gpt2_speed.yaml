@@ -52,6 +52,8 @@ training:
   dataset: "fineweb10b"
   # Mixed precision training settings
   mixed_precision: "bf16"
+  # True if we should compile the model
+  compile: True
 
   # The optimizer to use for training.
   optimizer:
