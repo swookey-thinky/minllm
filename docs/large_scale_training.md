@@ -594,3 +594,5 @@ https://github.com/huggingface/transformers/tree/main/examples/pytorch/language-
 [Megatron Training Example](https://github.com/facebookresearch/fairseq/blob/main/examples/megatron_11b/README.md)
 [Cramming: Training a Language Model on a Single GPU in One Day](https://arxiv.org/abs/2212.14034)
 [Reproducing GPT-2 (124M) in llm.c in 90 minutes for $20](https://github.com/karpathy/llm.c/discussions/481)
+[HuggingFace Accelerate Examples](https://github.com/huggingface/accelerate/blob/main/examples/by_feature/README.md)
+[Torch Memory-adaptive Algorithms (TOMA)](https://github.com/BlackHC/toma)

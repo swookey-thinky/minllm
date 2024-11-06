@@ -28,7 +28,7 @@ training:
   # The number of steps to perform gradient accumulation
   gradient_accumulation_steps: 1
   # Total number of steps to train for
-  training_steps: 6200
+  training_steps: 10000
   # Weight decay factor for all of the non-bias and layer norm terms
   weight_decay: 0.0
   # True to decay the learning rate using a cosine annealing strategy
@@ -40,14 +40,14 @@ training:
   # Schedule type
   learning_rate_schedule: "trapezoidal"
   # The maximum step where we cap the learning rate decay
-  learning_rate_decay_steps: 6200
+  learning_rate_decay_steps: 10000
   # The base learning rate, without warmup or decay
   learning_rate:  0.0018
   # The minimum learning rate, if we are using decay
   min_learning_rate: .00018
   # Save and sample the model every N steps.
   # Setting larger than training steps means only at the end
-  save_and_sample_every_n: 6201
+  save_and_sample_every_n: 10001
   # The dataset we are training on
   dataset: "fineweb10b"
   # Mixed precision training settings

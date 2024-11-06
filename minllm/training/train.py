@@ -99,6 +99,7 @@ def train(
             adjust_scheduler=True,
             sync_with_dataloader=False,
         ),
+        step_scheduler_with_optimizer=False,
     )
 
     if accelerator.is_main_process:

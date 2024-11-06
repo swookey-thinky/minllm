@@ -2,7 +2,9 @@ accelerate==0.34.2
 beautifulsoup4==4.12.3
 datasets==3.0.1
 einops==0.8.0
+evaluate==0.4.3
 ftfy==6.3.0
+lm_eval==0.4.5
 numpy==1.26.4
 spacy==3.7.5
 tiktoken==0.7.0

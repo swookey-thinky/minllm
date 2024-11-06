@@ -110,7 +110,7 @@ def get_trapezoidal_schedule_with_warmup(
             return step / warmup_steps
 
         # 2) constant lr for a while
-        if step < config.training.training_steps - warmupdown_steps:
+        if step < (config.training.training_steps - warmupdown_steps):
             return 1.0
 
         # 3) linear warmdown
