@@ -112,6 +112,7 @@ class FineWeb10BTokenized(Dataset):
                     ),
                     dtype=np.uint16,
                     mode="r",
+                    offset=int(256 * 4),
                 )
                 x = torch.from_numpy(
                     data[train_idx : train_idx + self._context_length].astype(np.int64)
@@ -130,6 +131,7 @@ class FineWeb10BTokenized(Dataset):
                     ),
                     dtype=np.uint16,
                     mode="r",
+                    offset=int(256 * 4),
                 )
                 shard2_data = np.memmap(
                     os.path.join(
@@ -138,6 +140,7 @@ class FineWeb10BTokenized(Dataset):
                     ),
                     dtype=np.uint16,
                     mode="r",
+                    offset=int(256 * 4),
                 )
 
                 shard1_idx_x = train_idx
@@ -181,6 +184,7 @@ class FineWeb10BTokenized(Dataset):
                 ),
                 dtype=np.uint16,
                 mode="r",
+                offset=int(256 * 4),
             )
             x = torch.from_numpy(
                 data[idx : idx + self._context_length].astype(np.int64)
