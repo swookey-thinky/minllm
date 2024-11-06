@@ -11,7 +11,16 @@ class Metric:
     def compute(self) -> torch.Tensor:
         raise NotImplementedError()
 
+    @abstractmethod
+    def reset(self) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def to(self, device) -> None:
+        raise NotImplementedError()
+
     @property
     @abstractmethod
     def name(self) -> str:
         raise NotImplementedError
+

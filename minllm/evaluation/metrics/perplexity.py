@@ -12,9 +12,16 @@ class Perplexity(Metric):
 
         self._metric = text.Perplexity(ignore_index=_IGNORE_INDEX)
 
+    def to(self, device):
+        self._metric.to(device)
+
     @property
     def name(self):
         return "perplexity"
+
+    @torch.no_grad()
+    def reset(self) -> None:
+        self._metric.reset()
 
     @torch.no_grad()
     def update(self, preds: torch.Tensor, targets: torch.Tensor) -> None:

@@ -42,6 +42,7 @@ class Evaluator:
                 total=self._total_samples // self._samples_per_batch,
                 leave=False,
                 desc="Evaluating",
+                disable=not accelerator.is_main_process,
             ) as progress_bar:
                 while step < (self._total_samples // self._samples_per_batch):
                     x, y = next(dataloader)
@@ -49,12 +50,14 @@ class Evaluator:
                         logits, _ = model(x)
 
                         for metric in self._metrics:
+                            metric.to(logits.device)
                             metric.update(logits, y)
                     step += 1
                     progress_bar.update(1)
 
-                # Compute all of the final results
-                for metric in self._metrics:
-                    results[metric.name] = metric.compute().clone().detach().numpy()
+            # Compute all of the final results
+            for metric in self._metrics:
+                results[metric.name] = accelerator.gather_for_metrics(metric.compute().clone().detach()).mean().cpu().numpy()
+                metric.reset()
         model.train()
         return results

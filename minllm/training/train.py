@@ -51,36 +51,6 @@ def train(
     if "tokenizer" in config:
         tokenizer = instantiate_from_config(config.tokenizer.to_dict())
 
-    # Create the evaluator for measuring the training performance.
-    evaluator = Evaluator(config=config.training.evaluation)
-
-    # Load the training dataset
-    dataset = load_dataset(
-        dataset,
-        context_length=config.model.params.context_length,
-        tokenizer=tokenizer,
-    )
-
-    if batch_size <= 0:
-        batch_size = config.training.batch_size
-    if num_training_steps <= 0:
-        num_training_steps = config.training.training_steps
-
-    # Use a RandomSampler with replacement, otherwise for large datasets,
-    # the non-replacement version will try to create an incredibly large list
-    # of random indices and most likely blow out our memory. For example,
-    # OpenWebText has ~9b tokens in it, so attempting to create a 9b list of random
-    # indices of int64 dtype will take 9*8~72GB of RAM, and if doing this on a multi-gpu
-    # node, well, boom.
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        sampler=RandomSampler(data_source=dataset, replacement=True),
-        pin_memory=True,
-        num_workers=4,
-    )
-    model = instantiate_from_config(config.model, use_config_struct=True)
-
     # Check to see if we are using gradient accumulation
     gradient_accumulation_steps = 1
     if "training" in config and "gradient_accumulation_steps" in config.training:
@@ -102,37 +72,78 @@ def train(
         step_scheduler_with_optimizer=False,
     )
 
-    if accelerator.is_main_process:
-        print(
-            summary(
-                model=model,
-                input_size=(
-                    batch_size,
-                    config.model.params.context_length,
-                ),
-                dtypes=[torch.int64],
-            )
+    # Create the model to train
+    model = instantiate_from_config(config.model, use_config_struct=True)
+
+    if batch_size <= 0:
+        batch_size = config.training.batch_size
+    if num_training_steps <= 0:
+        num_training_steps = config.training.training_steps
+
+    accelerator.print(
+        summary(
+            model=model,
+            input_size=(
+                batch_size,
+                config.model.params.context_length,
+            ),
+            dtypes=[torch.int64],
+            verbose=0,
         )
+    )
 
     # If we are resuming from a checkpoint, load the model and optimizer states,
     # and set the surrent step to the last training step.
     step = 0
     if resume_from_checkpoint:
-        checkpoint = torch.load(resume_from_checkpoint, map_location="cpu")
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        checkpoint = torch.load(resume_from_checkpoint, map_location="cpu", weights_only=False)
         model.load_state_dict(checkpoint["model_state_dict"])
         step = checkpoint["step"]
-        print(f"Resuming training from step {step}.")
+        accelerator.print(f"Resuming training from step {step}.")
 
-    # Move everything to the accelerator. First we move the model and the dataset,
+    # Move everything to the accelerator. First we move the model,
     # so that the optimizer can see the on-device parameters.
-    model, dataloader = accelerator.prepare(model, dataloader)
+    model = accelerator.prepare(model)
+
+    # Create the evaluator for measuring the training performance.
+    evaluator = Evaluator(config=config.training.evaluation)
+
+    # Load the training dataset. Make sure to do this on the main process first
+    # since we only want to download the data once if we can.
+    with accelerator.main_process_first():
+        dataset = load_dataset(
+            dataset,
+            context_length=config.model.params.context_length,
+            tokenizer=tokenizer,
+        )
+
+    # Use a RandomSampler with replacement, otherwise for large datasets,
+    # the non-replacement version will try to create an incredibly large list
+    # of random indices and most likely blow out our memory. For example,
+    # OpenWebText has ~9b tokens in it, so attempting to create a 9b list of random
+    # indices of int64 dtype will take 9*8~72GB of RAM, and if doing this on a multi-gpu
+    # node, well, boom.
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        sampler=RandomSampler(data_source=dataset, replacement=True),
+        pin_memory=True,
+        num_workers=4,
+    )
+
+    # Move the dataloader to the device
+    dataloader = accelerator.prepare(dataloader)
 
     # Now create the optimizer
     optimizer = configure_optimizers(
         model=model,
         config=config.training,
+        accelerator=accelerator,
     )
+
+    if resume_from_checkpoint:
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
     # Create the learning rate schedule
     if "learning_rate_schedule" in config.training:
         assert config.training.learning_rate_schedule in ["cosine", "trapezoidal"]
@@ -168,12 +179,12 @@ def train(
     else:
         if "training" in config and "compile" in config.training:
             do_compile = config.training.compile
-    print(f"Model compilation setting: {do_compile}")
+    accelerator.print(f"Model compilation setting: {do_compile}")
     if do_compile:
         model = torch.compile(model)
 
     current_evaluation_results = {}
-    with tqdm(initial=step, total=num_training_steps) as progress_bar:
+    with tqdm(initial=step, total=num_training_steps, disable=not accelerator.is_main_process) as progress_bar:
         # Perform gradient descent for the given number of training steps.
         while step < num_training_steps:
             # All of the gradient accumulation steps count as one training step.
@@ -228,14 +239,16 @@ def train(
                 if dist.is_initialized():
                     torch.distributed.barrier()
 
+                if not disable_evaluation:
+                    current_evaluation_results = evaluator.evaluate(
+                        model=model,
+                        dataloader=dataloader,
+                        accelerator=accelerator,
+                    )
+
+                # Only save the model from the main process.
                 if accelerator.is_main_process:
-                    if not disable_evaluation:
-                        current_evaluation_results = evaluator.evaluate(
-                            model=model,
-                            dataloader=dataloader,
-                            accelerator=accelerator,
-                        )
-                    save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
+                    save(accelerator.unwrap_model(model), step, loss, optimizer, config, output_path=OUTPUT_NAME)
                 average_loss = average_loss_cumulative / float(
                     save_and_sample_every_n * gradient_accumulation_steps
                 )
@@ -251,17 +264,19 @@ def train(
     if dist.is_initialized():
         torch.distributed.barrier()
 
+    if not disable_evaluation:
+        current_evaluation_results = evaluator.evaluate(
+            model=model,
+            dataloader=dataloader,
+            accelerator=accelerator,
+        )
+
     if accelerator.is_main_process:
-        if not disable_evaluation:
-            current_evaluation_results = evaluator.evaluate(
-                model=model,
-                dataloader=dataloader,
-                accelerator=accelerator,
-            )
-        save(model, step, loss, optimizer, config, output_path=OUTPUT_NAME)
+        save(accelerator.unwrap_model(model), step, loss, optimizer, config, output_path=OUTPUT_NAME)
 
+    accelerator.end_training()
 
-def configure_optimizers(model: torch.nn.Module, config: DotConfig):
+def configure_optimizers(model: torch.nn.Module, config: DotConfig, accelerator: Accelerator):
     weight_decay = config.weight_decay
 
     # start with all of the candidate parameters
@@ -278,10 +293,10 @@ def configure_optimizers(model: torch.nn.Module, config: DotConfig):
     ]
     num_decay_params = sum(p.numel() for p in decay_params)
     num_nodecay_params = sum(p.numel() for p in nodecay_params)
-    print(
+    accelerator.print(
         f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters"
     )
-    print(
+    accelerator.print(
         f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters"
     )
 
