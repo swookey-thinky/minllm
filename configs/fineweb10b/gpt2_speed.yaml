@@ -36,7 +36,7 @@ training:
   # Number of steps for linear learning rate warmup
   warmup_steps: 250
   # Number of steps for linear warmdown
-  warmdown_step: 2000
+  warmdown_steps: 2000
   # Schedule type
   learning_rate_schedule: "trapezoidal"
   # The maximum step where we cap the learning rate decay
