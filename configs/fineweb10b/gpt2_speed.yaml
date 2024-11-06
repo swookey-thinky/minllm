@@ -1,5 +1,9 @@
 # GPT-2 Model built for training speed rather than reproducibility. Designed to be
 # run on an 8xH100 80GB instance.
+#
+# At a batch size of 64, on 8 nodes for 1 gradient accumulation steps, this will
+# train on 64*8*1*1024 = 524288 tokens per batch. Training for 6200 steps means we will
+# train on 524288*6200 = 3250585600 ~ 3b tokens
 model:
   target: minllm.models.gpt2.GPT
   params:
@@ -20,11 +24,11 @@ tokenizer:
 
 training:
   # Batch size to use for training
-  batch_size: 128
+  batch_size: 64
   # The number of steps to perform gradient accumulation
-  gradient_accumulation_steps: 5
+  gradient_accumulation_steps: 1
   # Total number of steps to train for
-  training_steps: 10000
+  training_steps: 6200
   # Weight decay factor for all of the non-bias and layer norm terms
   weight_decay: 0.0
   # True to decay the learning rate using a cosine annealing strategy
@@ -36,14 +40,14 @@ training:
   # Schedule type
   learning_rate_schedule: "trapezoidal"
   # The maximum step where we cap the learning rate decay
-  learning_rate_decay_steps: 10000
+  learning_rate_decay_steps: 6200
   # The base learning rate, without warmup or decay
   learning_rate:  0.0018
   # The minimum learning rate, if we are using decay
   min_learning_rate: .00018
   # Save and sample the model every N steps.
   # Setting larger than training steps means only at the end
-  save_and_sample_every_n: 10001
+  save_and_sample_every_n: 6201
   # The dataset we are training on
   dataset: "fineweb10b"
   # Mixed precision training settings
