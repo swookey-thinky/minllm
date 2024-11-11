@@ -44,6 +44,12 @@ All training is multi-GPU aware as well, so if you are lucky enough to have an 8
 > torchrun --standalone --nproc_per_node=8 training/train.py --config_path configs/openwebtext/gpt2.yaml
 ```
 
+We have also added a simple script to automatically train your model on Lambda Labs instances, provided you already have an account and API key for their cloud (we currently rent our GPUs from them because they are decently priced and easy to use, hence why this is the cloud provider we implemented). You can run the following script, and it will automatically provision a machine, send your current workspace over, train the model per the configuration, and download the results (model checkpoint) locally:
+
+```
+> ./terraform/lambda_labs_train.sh --lambda_api_key <api key> --lambda_key_name <api key name> --lambda_private_key <path to private key> --config_path <path to config file for training>
+```
+
 ## Papers
 
 | Date  | Name  | Paper | Config | Instructions
