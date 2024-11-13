@@ -72,21 +72,27 @@ We have also added a simple script to automatically train your model on Lambda L
 | April 2022 | Claude | [Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback](https://arxiv.org/abs/2204.05862) | |
 | February 2023 | LLaMA | [LLaMA: Open and Efficient Foundation Language Models](https://arxiv.org/abs/2302.13971) | |
 | March 2023 | GPT-4 | [GPT-4 Technical Report](https://arxiv.org/abs/2303.08774) | |
+| April 2024 | Pythia | [Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling](https://arxiv.org/abs/2304.01373) | |
 | May 2023 | DPO | [Direct Preference Optimization: Your Language Model is Secretly a Reward Model](https://arxiv.org/abs/2305.18290) | |
 | June 2023 | PHI-1 | [Textbooks Are All You Need](https://arxiv.org/abs/2306.11644) | |
 | July 2023 | LLaMA 2 | [Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288) | |
 | August 2023 | Code LLaMA | [Code Llama: Open Foundation Models for Code](https://arxiv.org/abs/2308.12950) | |
+| September 2023 | Qwen | [Qwen Technical Report](https://arxiv.org/abs/2309.16609) | |
 | October 2023 | Mistral | [Mistral 7B](https://arxiv.org/abs/2310.06825) | |
 | November 2023 | Falcon | [The Falcon Series of Open Language Models](https://arxiv.org/abs/2311.16867) | |
 | January 2024 | Mixtral | [Mixtral of Experts](https://arxiv.org/abs/2401.04088) | |
 | February 2024 | OLMo | [OLMo: Accelerating the Science of Language Models](https://arxiv.org/abs/2402.00838) | |
+| February 2024 | MobileLLM | [MobileLLM: Optimizing Sub-billion Parameter Language Models for On-Device Use Cases](https://arxiv.org/abs/2402.14905) | |
 | March 2024 | Gemma | [Gemma: Open Models Based on Gemini Research and Technology](https://arxiv.org/abs/2403.08295) | |
+| June 2024 | Qwen 2 | [Hello Qwen2](https://qwenlm.github.io/blog/qwen2/) | |
 | July 2024 | LLaMA 3 | [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783) | |
 | July 2024 | Gemma 2 | [Gemma 2: Improving Open Language Models at a Practical Size](https://arxiv.org/abs/2408.00118) | | 
 | July 2024 | Minitron | [Compact Language Models via Pruning and Knowledge Distillation](https://arxiv.org/abs/2407.14679) | |
+| July 2024 | SmolLM | [SmolLM - blazingly fast and remarkably powerful](https://huggingface.co/blog/smollm) | |
 | September 2024 | Molmo | [Molmo and PixMo: Open Weights and Open Data for State-of-the-Art Multimodal Models](https://molmo.allenai.org/paper.pdf) | |
 | September 2024 | NVLM | [NVLM: Open Frontier-Class Multimodal LLMs](https://arxiv.org/abs/2409.11402) | |
 | September 2024 | SCoRe | [Training Language Models to Self-Correct via Reinforcement Learning](https://arxiv.org/abs/2409.12917) | |
+| September 2024 | Qwen 2.5 | [Qwen2.5: A Party of Foundation Models!](https://qwenlm.github.io/blog/qwen2.5/) | |
 | October 2024 | TokenFormer | [TokenFormer: Rethinking Transformer Scaling with Tokenized Model Parameters](https://arxiv.org/abs/2410.23168) | |
 
 ## Datasets
